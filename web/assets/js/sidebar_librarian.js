@@ -31,3 +31,51 @@
         <span>Logout</span>
     </a>
 </div>
+
+/* =========================================
+   RoomSync Global Scripts
+   ========================================= */
+document.addEventListener('DOMContentLoaded', function () {
+    const sidebar = document.getElementById('sidebar');
+    const mainContent = document.querySelector('.main-content');
+    const toggleBtn = document.getElementById('sidebarToggle');
+
+    // 1. Fungsi Toggle Sidebar (Kuncup / Kembang)
+    if (toggleBtn && sidebar && mainContent) {
+        toggleBtn.addEventListener('click', function () {
+            if (window.innerWidth < 992) {
+                sidebar.classList.toggle('show');
+            } else {
+                sidebar.classList.toggle('collapsed');
+                mainContent.classList.toggle('expanded');
+            }
+        });
+    }
+
+    // 2. Muatkan sidebar.html ke dalam <aside id="sidebar">
+    if (sidebar && sidebar.innerHTML.trim() === '') {
+        fetch('sidebar.html')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Fail sidebar.html tidak dijumpai');
+                }
+                return response.text();
+            })
+            .then(html => {
+                sidebar.innerHTML = html;
+
+                // Aktifkan menu mengikut halaman semasa
+                let currentPage = window.location.pathname.split('/').pop() || 'librarian_dashboard.html';
+                if (currentPage === 'update_room_status.html') {
+                    currentPage = 'manage_rooms.html';
+                }
+
+                sidebar.querySelectorAll('.nav-link').forEach(link => {
+                    if (link.getAttribute('href') === currentPage) {
+                        link.classList.add('active');
+                    }
+                });
+            })
+            .catch(error => console.error('Sidebar Error:', error));
+    }
+});
