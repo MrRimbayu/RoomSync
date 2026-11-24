@@ -1,15 +1,508 @@
 <!DOCTYPE html>
-<!--
-Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
-Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Html.html to edit this template
--->
-<html>
-    <head>
-        <title>TODO supply a title</title>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    </head>
-    <body>
-        <div>TODO write content</div>
-    </body>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RoomSync | Booking Analytics</title>
+
+    <!-- Bootstrap 5 CSS & Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+    <!-- RoomSync Global Stylesheet -->
+    <link rel="stylesheet" href="../assets/css/style.css">
+
+    <style>
+        /* Heatmap Cell Styles (Inspired by Reference Analytics) */
+        .heatmap-table th {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.5rem 0.25rem;
+        }
+        .heatmap-table td.time-col {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            white-space: nowrap;
+            width: 85px;
+        }
+        .heatmap-cell {
+            height: 36px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.72rem;
+            font-weight: 600;
+            transition: transform 0.15s ease;
+        }
+        .heatmap-cell:hover {
+            transform: scale(1.06);
+            cursor: default;
+        }
+        .heat-low {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+        .heat-mid {
+            background-color: #fed7aa;
+            color: #9a3412;
+        }
+        .heat-high {
+            background-color: #f97316;
+            color: #ffffff;
+        }
+        .legend-box {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+
+<div class="wrapper">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <!-- ==================== MAIN CONTENT ==================== -->
+    <div class="main-content" id="mainContent">
+        <!-- Topbar -->
+        <header class="topbar">
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn btn-outline-secondary btn-sm" id="sidebarToggle" type="button" aria-label="Toggle Sidebar">
+                    <i class="bi bi-list fs-5"></i>
+                </button>
+                <div>
+                    <h5 class="mb-0 fw-bold">Booking Analytics</h5>
+                    <small class="text-muted">Room reservation analysis, utilization & peak usage trends</small>
+                </div>
+            </div>
+
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <a href="librarian_dashboard.html" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i> Back to Dashboard
+                </a>
+                <a href="daily_schedule.html" class="btn btn-primary-roomsync btn-sm">
+                    <i class="bi bi-calendar-week me-1"></i> View Daily Schedule
+                </a>
+            </div>
+        </header>
+
+        <!-- Page Body -->
+        <main class="container-fluid p-4">
+            <!-- Filter Bar (Start Date, End Date, Room Filter) -->
+            <div class="card-roomsync p-3 mb-4">
+                <div class="row g-3 align-items-end">
+                    <div class="col-12 col-sm-6 col-md-3">
+                        <label class="form-label small text-muted fw-semibold mb-1">Start Date</label>
+                        <input type="date" id="startDate" class="form-control form-control-sm" value="2026-11-01">
+                    </div>
+                    <div class="col-12 col-sm-6 col-md-3">
+                        <label class="form-label small text-muted fw-semibold mb-1">End Date</label>
+                        <input type="date" id="endDate" class="form-control form-control-sm" value="2026-11-19">
+                    </div>
+                    <div class="col-12 col-sm-6 col-md-3">
+                        <label class="form-label small text-muted fw-semibold mb-1">Room / Space</label>
+                        <select id="roomFilter" class="form-select form-select-sm">
+                            <option value="all" selected>All Library Rooms (8)</option>
+                            <option value="discussion">Discussion Rooms (Floor 1)</option>
+                            <option value="media">Media Rooms (Floor 2)</option>
+                            <option value="seminar">Seminar Pods (Floor 3)</option>
+                            <option value="quiet">Quiet Study Rooms (Floor 4)</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-sm-6 col-md-3 d-flex gap-2">
+                        <button type="button" id="applyFilterBtn" class="btn btn-primary-roomsync btn-sm w-100">
+                            <i class="bi bi-funnel me-1"></i> Apply Filter
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top KPI Summary Strip (Seperti dalam gambar rujukan) -->
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-lg-3">
+                    <div class="card-roomsync p-3 h-100">
+                        <span class="text-muted small fw-medium">Total Reservations</span>
+                        <h3 class="fw-bold my-1" id="kpiReservations">1,284</h3>
+                        <span class="badge badge-confirmed rounded-pill px-2 py-1">+14.2% this month</span>
+                    </div>
+                </div>
+
+                <div class="col-6 col-lg-3">
+                    <div class="card-roomsync p-3 h-100">
+                        <span class="text-muted small fw-medium">Room Utilization Rate</span>
+                        <h3 class="fw-bold my-1 text-primary" id="kpiUtilization">76.4%</h3>
+                        <span class="small text-muted">Avg. 2.1 hrs per booking</span>
+                    </div>
+                </div>
+
+                <div class="col-6 col-lg-3">
+                    <div class="card-roomsync p-3 h-100">
+                        <span class="text-muted small fw-medium">Peak Booking Hours</span>
+                        <h3 class="fw-bold my-1 text-warning" id="kpiPeakHour">2 PM – 5 PM</h3>
+                        <span class="small text-muted">Busiest day: Wednesday</span>
+                    </div>
+                </div>
+
+                <div class="col-6 col-lg-3">
+                    <div class="card-roomsync p-3 h-100">
+                        <span class="text-muted small fw-medium">Top Utilized Room</span>
+                        <h3 class="fw-bold my-1 text-success" id="kpiTopRoom">RM-101</h3>
+                        <span class="small text-muted">Discussion Room A1 (198 bookings)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 1: Total Bookings by Room & Room Utilization Percentage -->
+            <div class="row g-4 mb-4">
+                <!-- Total Bookings by Room -->
+                <div class="col-12 col-lg-7">
+                    <div class="card-roomsync p-4 h-100">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <h6 class="fw-bold mb-0">Total Bookings by Room</h6>
+                                <small class="text-muted">Comparison of total reservations across library rooms</small>
+                            </div>
+                            <span class="badge bg-light text-dark border">Top 8 Rooms</span>
+                        </div>
+                        <div style="height: 300px;">
+                            <canvas id="bookingsByRoomChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Room Utilization Percentage -->
+                <div class="col-12 col-lg-5">
+                    <div class="card-roomsync p-4 h-100">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <h6 class="fw-bold mb-0">Room Utilization Percentage</h6>
+                                <small class="text-muted">Occupancy rate by room category</small>
+                            </div>
+                        </div>
+
+                        <div style="height: 185px;" class="mb-3">
+                            <canvas id="utilizationDoughnutChart"></canvas>
+                        </div>
+
+                        <!-- Progress Breakdown -->
+                        <div class="small">
+                            <div class="mb-2">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span class="fw-medium">Discussion Rooms (Floor 1)</span>
+                                    <span class="fw-bold text-primary">86%</span>
+                                </div>
+                                <div class="progress" style="height: 6px;">
+                                    <div class="progress-bar bg-primary" style="width: 86%"></div>
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span class="fw-medium">Seminar Pods (Floor 3)</span>
+                                    <span class="fw-bold text-info">78%</span>
+                                </div>
+                                <div class="progress" style="height: 6px;">
+                                    <div class="progress-bar bg-info" style="width: 78%"></div>
+                                </div>
+                            </div>
+                            <div class="mb-2">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span class="fw-medium">Media Rooms (Floor 2)</span>
+                                    <span class="fw-bold text-success">72%</span>
+                                </div>
+                                <div class="progress" style="height: 6px;">
+                                    <div class="progress-bar bg-success" style="width: 72%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span class="fw-medium">Quiet Study Rooms (Floor 4)</span>
+                                    <span class="fw-bold text-warning">65%</span>
+                                </div>
+                                <div class="progress" style="height: 6px;">
+                                    <div class="progress-bar bg-warning" style="width: 65%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 2: Booking Heatmap & Peak Booking Hours -->
+            <div class="row g-4">
+                <!-- Booking Heatmap -->
+                <div class="col-12 col-lg-6">
+                    <div class="card-roomsync p-4 h-100">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                            <div>
+                                <h6 class="fw-bold mb-0">Booking Heatmap</h6>
+                                <small class="text-muted">Scheduled occupancy density by day & time slot</small>
+                            </div>
+                            <!-- Heatmap Legend -->
+                            <div class="d-flex align-items-center gap-3 small">
+                                <span><span class="legend-box heat-low me-1"></span>0%–50%</span>
+                                <span><span class="legend-box heat-mid me-1"></span>51%–80%</span>
+                                <span><span class="legend-box heat-high me-1"></span>81%–100%</span>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-borderless heatmap-table align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th class="text-start">Time</th>
+                                        <th>Mon</th>
+                                        <th>Tue</th>
+                                        <th>Wed</th>
+                                        <th>Thu</th>
+                                        <th>Fri</th>
+                                        <th>Sat</th>
+                                        <th>Sun</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="time-col">08:00 AM</td>
+                                        <td><div class="heatmap-cell heat-low">28%</div></td>
+                                        <td><div class="heatmap-cell heat-low">35%</div></td>
+                                        <td><div class="heatmap-cell heat-low">40%</div></td>
+                                        <td><div class="heatmap-cell heat-low">32%</div></td>
+                                        <td><div class="heatmap-cell heat-low">25%</div></td>
+                                        <td><div class="heatmap-cell heat-low">15%</div></td>
+                                        <td><div class="heatmap-cell heat-low">12%</div></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="time-col">10:00 AM</td>
+                                        <td><div class="heatmap-cell heat-mid">64%</div></td>
+                                        <td><div class="heatmap-cell heat-mid">72%</div></td>
+                                        <td><div class="heatmap-cell heat-mid">78%</div></td>
+                                        <td><div class="heatmap-cell heat-mid">68%</div></td>
+                                        <td><div class="heatmap-cell heat-mid">55%</div></td>
+                                        <td><div class="heatmap-cell heat-low">38%</div></td>
+                                        <td><div class="heatmap-cell heat-low">30%</div></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="time-col">12:00 PM</td>
+                                        <td><div class="heatmap-cell heat-mid">70%</div></td>
+                                        <td><div class="heatmap-cell heat-high">84%</div></td>
+                                        <td><div class="heatmap-cell heat-high">88%</div></td>
+                                        <td><div class="heatmap-cell heat-mid">76%</div></td>
+                                        <td><div class="heatmap-cell heat-low">45%</div></td>
+                                        <td><div class="heatmap-cell heat-mid">52%</div></td>
+                                        <td><div class="heatmap-cell heat-low">42%</div></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="time-col">02:00 PM</td>
+                                        <td><div class="heatmap-cell heat-high">88%</div></td>
+                                        <td><div class="heatmap-cell heat-high">94%</div></td>
+                                        <td><div class="heatmap-cell heat-high">98%</div></td>
+                                        <td><div class="heatmap-cell heat-high">91%</div></td>
+                                        <td><div class="heatmap-cell heat-mid">74%</div></td>
+                                        <td><div class="heatmap-cell heat-mid">60%</div></td>
+                                        <td><div class="heatmap-cell heat-low">48%</div></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="time-col">04:00 PM</td>
+                                        <td><div class="heatmap-cell heat-high">85%</div></td>
+                                        <td><div class="heatmap-cell heat-high">90%</div></td>
+                                        <td><div class="heatmap-cell heat-high">95%</div></td>
+                                        <td><div class="heatmap-cell heat-high">86%</div></td>
+                                        <td><div class="heatmap-cell heat-mid">68%</div></td>
+                                        <td><div class="heatmap-cell heat-mid">54%</div></td>
+                                        <td><div class="heatmap-cell heat-low">44%</div></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="time-col">06:00 PM</td>
+                                        <td><div class="heatmap-cell heat-mid">58%</div></td>
+                                        <td><div class="heatmap-cell heat-mid">62%</div></td>
+                                        <td><div class="heatmap-cell heat-mid">65%</div></td>
+                                        <td><div class="heatmap-cell heat-mid">56%</div></td>
+                                        <td><div class="heatmap-cell heat-low">35%</div></td>
+                                        <td><div class="heatmap-cell heat-low">28%</div></td>
+                                        <td><div class="heatmap-cell heat-low">24%</div></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="time-col">08:00 PM</td>
+                                        <td><div class="heatmap-cell heat-low">42%</div></td>
+                                        <td><div class="heatmap-cell heat-low">48%</div></td>
+                                        <td><div class="heatmap-cell heat-mid">52%</div></td>
+                                        <td><div class="heatmap-cell heat-low">40%</div></td>
+                                        <td><div class="heatmap-cell heat-low">20%</div></td>
+                                        <td><div class="heatmap-cell heat-low">18%</div></td>
+                                        <td><div class="heatmap-cell heat-low">22%</div></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Peak Booking Hours -->
+                <div class="col-12 col-lg-6">
+                    <div class="card-roomsync p-4 h-100">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <h6 class="fw-bold mb-0">Peak Booking Hours</h6>
+                                <small class="text-muted">Average hourly reservation volume across operating hours</small>
+                            </div>
+                            <span class="badge badge-maintenance rounded-pill px-2 py-1">Peak: 2 PM – 4 PM</span>
+                        </div>
+                        <div style="height: 310px;">
+                            <canvas id="peakHoursChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="py-3 px-4 text-center text-md-start">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center">
+                <span>&copy; 2026 <strong>RoomSync</strong> — Library Room Booking System</span>
+                <span>Librarian Portal</span>
+            </div>
+        </footer>
+    </div>
+</div>
+
+<!-- Bootstrap JS, Chart.js & Custom Script -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="../assets/js/script.js"></script>
+
+<script>
+    // 1. Total Bookings by Room (Horizontal Bar Chart)
+    const bookingsByRoomCtx = document.getElementById('bookingsByRoomChart').getContext('2d');
+    const bookingsByRoomChart = new Chart(bookingsByRoomCtx, {
+        type: 'bar',
+        data: {
+            labels: [
+                'RM-101 (Discussion A1)',
+                'RM-102 (Discussion A2)',
+                'RM-301 (Seminar Pod C1)',
+                'RM-202 (Media Room B2)',
+                'RM-302 (Seminar Pod C2)',
+                'RM-201 (Media Room B1)',
+                'RM-401 (Quiet Study D1)',
+                'RM-402 (Quiet Study D2)'
+            ],
+            datasets: [{
+                label: 'Total Bookings',
+                data: [198, 184, 172, 165, 154, 142, 138, 131],
+                backgroundColor: '#2563eb',
+                hoverBackgroundColor: '#1d4ed8',
+                borderRadius: 6,
+                barThickness: 18
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    grid: { color: '#f1f5f9' }
+                },
+                y: {
+                    grid: { display: false }
+                }
+            }
+        }
+    });
+
+    // 2. Room Utilization Percentage (Doughnut Chart)
+    const utilizationCtx = document.getElementById('utilizationDoughnutChart').getContext('2d');
+    const utilizationChart = new Chart(utilizationCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Utilized (76.4%)', 'Available / Idle (23.6%)'],
+            datasets: [{
+                data: [76.4, 23.6],
+                backgroundColor: ['#2563eb', '#e2e8f0'],
+                borderWidth: 0,
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '72%',
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { boxWidth: 12, font: { size: 12 } }
+                }
+            }
+        }
+    });
+
+    // 3. Peak Booking Hours (Bar Chart highlighting peak hours in orange)
+    const peakHoursCtx = document.getElementById('peakHoursChart').getContext('2d');
+    const peakHoursChart = new Chart(peakHoursCtx, {
+        type: 'bar',
+        data: {
+            labels: ['8 AM', '9 AM', '10 AM', '11 AM', '12 PM', '1 PM', '2 PM', '3 PM', '4 PM', '5 PM', '6 PM', '7 PM', '8 PM'],
+            datasets: [{
+                label: 'Avg. Bookings / Hour',
+                data: [12, 22, 34, 41, 45, 48, 62, 68, 64, 52, 36, 28, 19],
+                backgroundColor: [
+                    '#93c5fd', '#93c5fd', '#60a5fa', '#60a5fa', '#3b82f6', '#3b82f6',
+                    '#f97316', '#f97316', '#f97316', '#3b82f6', '#60a5fa', '#93c5fd', '#93c5fd'
+                ],
+                borderRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: '#f1f5f9' }
+                },
+                x: {
+                    grid: { display: false }
+                }
+            }
+        }
+    });
+
+    // Interactive Filter Simulation
+    document.getElementById('applyFilterBtn').addEventListener('click', () => {
+        const roomType = document.getElementById('roomFilter').value;
+        const kpiReservations = document.getElementById('kpiReservations');
+        const kpiUtilization = document.getElementById('kpiUtilization');
+        const kpiTopRoom = document.getElementById('kpiTopRoom');
+
+        const presets = {
+            all: { res: '1,284', util: '76.4%', top: 'RM-101', hours: [12, 22, 34, 41, 45, 48, 62, 68, 64, 52, 36, 28, 19] },
+            discussion: { res: '482', util: '86.0%', top: 'RM-101', hours: [6, 10, 15, 18, 20, 21, 26, 28, 25, 20, 14, 11, 8] },
+            media: { res: '307', util: '72.0%', top: 'RM-202', hours: [2, 4, 7, 9, 10, 11, 15, 16, 15, 12, 8, 6, 4] },
+            seminar: { res: '326', util: '78.0%', top: 'RM-301', hours: [3, 5, 8, 9, 10, 11, 14, 16, 16, 13, 9, 7, 4] },
+            quiet: { res: '169', util: '65.0%', top: 'RM-401', hours: [1, 3, 4, 5, 5, 5, 7, 8, 8, 7, 5, 4, 3] }
+        };
+
+        const selected = presets[roomType];
+        kpiReservations.textContent = selected.res;
+        kpiUtilization.textContent = selected.util;
+        kpiTopRoom.textContent = selected.top;
+
+        peakHoursChart.data.datasets[0].data = selected.hours;
+        peakHoursChart.update();
+    });
+</script>
+
+</body>
 </html>
