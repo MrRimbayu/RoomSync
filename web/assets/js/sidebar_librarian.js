@@ -33,7 +33,7 @@
 </div>
 
 /* =========================================
-   RoomSync Global Scripts
+   JS FOR SIDEBAR
    ========================================= */
 document.addEventListener('DOMContentLoaded', function () {
     const sidebar = document.getElementById('sidebar');
@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // 2. Muatkan sidebar.html ke dalam <aside id="sidebar">
+    // 2. Muatkan sidebar_librarian.js ke dalam <aside id="sidebar">
     if (sidebar && sidebar.innerHTML.trim() === '') {
         fetch('sidebar.html')
             .then(response => {
