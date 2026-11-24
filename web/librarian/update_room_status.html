@@ -1,15 +1,512 @@
 <!DOCTYPE html>
-<!--
-Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
-Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Html.html to edit this template
--->
-<html>
-    <head>
-        <title>TODO supply a title</title>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    </head>
-    <body>
-        <div>TODO write content</div>
-    </body>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RoomSync | Update Room Status</title>
+
+    <!-- Bootstrap 5 CSS & Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+    <!-- RoomSync Global Stylesheet -->
+    <link rel="stylesheet" href="../assets/css/style.css">
+
+    <style>
+        /* Custom Status Radio Card Styles */
+        .status-option-card {
+            border: 1.5px solid var(--border-color);
+            border-radius: 10px;
+            padding: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background-color: #ffffff;
+        }
+        .status-option-card:hover {
+            border-color: #94a3b8;
+            background-color: #f8fafc;
+        }
+        .btn-check:checked + .status-option-card.opt-available {
+            border-color: #16a34a;
+            background-color: #f0fdf4;
+        }
+        .btn-check:checked + .status-option-card.opt-maintenance {
+            border-color: #dc2626;
+            background-color: #fef2f2;
+        }
+        .btn-check:checked + .status-option-card.opt-reserved {
+            border-color: #2563eb;
+            background-color: #eff6ff;
+        }
+        .facility-pill {
+            font-size: 0.78rem;
+            background-color: #f1f5f9;
+            color: #334155;
+            padding: 0.3rem 0.65rem;
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="wrapper">
+    <aside class="sidebar" id="sidebar"></aside>
+
+    <!-- ==================== MAIN CONTENT ==================== -->
+    <div class="main-content" id="mainContent">
+        <!-- Topbar -->
+        <header class="topbar">
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn btn-outline-secondary btn-sm" id="sidebarToggle" type="button" aria-label="Toggle Sidebar">
+                    <i class="bi bi-list fs-5"></i>
+                </button>
+                <div>
+                    <h5 class="mb-0 fw-bold">Update Room Status</h5>
+                    <small class="text-muted">Manage room availability, maintenance schedules & operational notes</small>
+                </div>
+            </div>
+
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <a href="manage_rooms.html" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i> Back to Manage Rooms
+                </a>
+                <a href="daily_schedule.html" class="btn btn-primary-roomsync btn-sm">
+                    <i class="bi bi-calendar-check me-1"></i> Daily Schedule
+                </a>
+            </div>
+        </header>
+
+        <!-- Page Body -->
+        <main class="container-fluid p-4">
+            <!-- Success Feedback Alert (Hidden by default) -->
+            <div id="statusAlert" class="alert alert-success alert-dismissible fade show d-none shadow-sm border-0 mb-4" role="alert">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-check-circle-fill fs-5"></i>
+                    <div>
+                        <strong>Room status updated!</strong>
+                        <span id="statusAlertMsg" class="ms-1">RM-101 has been updated successfully.</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" aria-label="Close" onclick="document.getElementById('statusAlert').classList.add('d-none')"></button>
+            </div>
+
+            <div class="row g-4">
+                <!-- Left Column: Update Status Form -->
+                <div class="col-12 col-lg-7">
+                    <div class="card-roomsync p-4">
+                        <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
+                            <div>
+                                <h6 class="fw-bold mb-0">Room Operational Status Form</h6>
+                                <small class="text-muted">Select a library room and configure its new availability status</small>
+                            </div>
+                            <span class="badge bg-light text-dark border">Librarian Control</span>
+                        </div>
+
+                        <form id="updateStatusForm">
+                            <!-- Select Room -->
+                            <div class="mb-4">
+                                <label for="roomSelect" class="form-label fw-semibold small">Select Library Room <span class="text-danger">*</span></label>
+                                <select id="roomSelect" class="form-select" required>
+                                    <option value="RM-101">RM-101 — Discussion Room A1 (Floor 1)</option>
+                                    <option value="RM-102">RM-102 — Discussion Room A2 (Floor 1)</option>
+                                    <option value="RM-201">RM-201 — Media Room B1 (Floor 2)</option>
+                                    <option value="RM-202">RM-202 — Media Room B2 (Floor 2)</option>
+                                    <option value="RM-301">RM-301 — Seminar Pod C1 (Floor 3)</option>
+                                    <option value="RM-401">RM-401 — Quiet Study Room D1 (Floor 4)</option>
+                                    <option value="RM-401">RM-402 — Quiet Study Room D2 (Floor 4)</option>
+                                </select>
+                            </div>
+
+                            <!-- New Status Selection (Radio Cards) -->
+                            <div class="mb-4">
+                                <label class="form-label fw-semibold small d-block mb-2">New Room Status <span class="text-danger">*</span></label>
+                                <div class="row g-3">
+                                    <!-- Available -->
+                                    <div class="col-12 col-md-4">
+                                        <input type="radio" class="btn-check" name="roomStatus" id="statusAvailable" value="Available" checked>
+                                        <label class="status-option-card opt-available w-100 h-100" for="statusAvailable">
+                                            <div class="d-flex align-items-center gap-2 mb-1">
+                                                <i class="bi bi-check-circle-fill text-success fs-5"></i>
+                                                <span class="fw-bold small">Available</span>
+                                            </div>
+                                            <small class="text-muted d-block" style="font-size: 0.75rem;">Open for student bookings</small>
+                                        </label>
+                                    </div>
+
+                                    <!-- Maintenance -->
+                                    <div class="col-12 col-md-4">
+                                        <input type="radio" class="btn-check" name="roomStatus" id="statusMaintenance" value="Maintenance">
+                                        <label class="status-option-card opt-maintenance w-100 h-100" for="statusMaintenance">
+                                            <div class="d-flex align-items-center gap-2 mb-1">
+                                                <i class="bi bi-tools text-danger fs-5"></i>
+                                                <span class="fw-bold small">Maintenance</span>
+                                            </div>
+                                            <small class="text-muted d-block" style="font-size: 0.75rem;">Closed for repair or cleaning</small>
+                                        </label>
+                                    </div>
+
+                                    <!-- Reserved / Blocked -->
+                                    <div class="col-12 col-md-4">
+                                        <input type="radio" class="btn-check" name="roomStatus" id="statusReserved" value="Reserved">
+                                        <label class="status-option-card opt-reserved w-100 h-100" for="statusReserved">
+                                            <div class="d-flex align-items-center gap-2 mb-1">
+                                                <i class="bi bi-lock-fill text-primary fs-5"></i>
+                                                <span class="fw-bold small">Reserved</span>
+                                            </div>
+                                            <small class="text-muted d-block" style="font-size: 0.75rem;">Blocked for library events</small>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Reason / Category -->
+                            <div class="row g-3 mb-3">
+                                <div class="col-12 col-md-6">
+                                    <label for="reasonSelect" class="form-label fw-semibold small">Reason / Status Category</label>
+                                    <select id="reasonSelect" class="form-select">
+                                        <option value="Ready for Normal Operation">Ready for Normal Operation</option>
+                                        <option value="Routine Cleaning & Sanitization">Routine Cleaning & Sanitization</option>
+                                        <option value="Projector / AV Equipment Repair">Projector / AV Equipment Repair</option>
+                                        <option value="Air-Conditioning / Electrical Maintenance">Air-Conditioning / Electrical Maintenance</option>
+                                        <option value="Furniture Replacement">Furniture Replacement</option>
+                                        <option value="Official Library Workshop / Event">Official Library Workshop / Event</option>
+                                    </select>
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <label for="effectiveDate" class="form-label fw-semibold small">Effective Date</label>
+                                    <input type="date" id="effectiveDate" class="form-control" value="2026-11-19" required>
+                                </div>
+                            </div>
+
+                            <!-- Time Window -->
+                            <div class="row g-3 mb-3">
+                                <div class="col-6">
+                                    <label for="startTime" class="form-label fw-semibold small">From Time</label>
+                                    <input type="time" id="startTime" class="form-control" value="08:00">
+                                </div>
+                                <div class="col-6">
+                                    <label for="endTime" class="form-label fw-semibold small">Until Time (Optional)</label>
+                                    <input type="time" id="endTime" class="form-control" value="17:00">
+                                </div>
+                            </div>
+
+                            <!-- Remarks / Notes -->
+                            <div class="mb-3">
+                                <label for="statusNotes" class="form-label fw-semibold small">Librarian Remarks / Public Notice</label>
+                                <textarea id="statusNotes" class="form-control" rows="3" placeholder="Enter details visible to library staff or students (e.g., Smart TV HDMI port under inspection)..."></textarea>
+                            </div>
+
+                            <!-- Notification Toggle -->
+                            <div class="form-check form-switch mb-4">
+                                <input class="form-check-input" type="checkbox" id="notifyStudents" checked>
+                                <label class="form-check-label small text-muted" for="notifyStudents">
+                                    Automatically notify students if their existing booking overlaps with a maintenance/reserved slot
+                                </label>
+                            </div>
+
+                            <!-- Form Actions -->
+                            <div class="d-flex flex-wrap justify-content-end gap-2 pt-2 border-top">
+                                <button type="reset" id="resetFormBtn" class="btn btn-outline-secondary">
+                                    <i class="bi bi-arrow-counterclockwise me-1"></i> Reset
+                                </button>
+                                <button type="submit" class="btn btn-primary-roomsync">
+                                    <i class="bi bi-save me-1"></i> Save & Update Status
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Right Column: Room Details Preview & Recent Logs -->
+                <div class="col-12 col-lg-5">
+                    <!-- Selected Room Preview Card -->
+                    <div class="card-roomsync p-4 mb-4">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+                                    <i class="bi bi-door-open"></i>
+                                </div>
+                                <div>
+                                    <span class="text-muted small fw-semibold" id="previewCode">RM-101</span>
+                                    <h6 class="fw-bold mb-0" id="previewName">Discussion Room A1</h6>
+                                </div>
+                            </div>
+                            <span id="previewBadge" class="badge badge-available rounded-pill px-3 py-2">Available</span>
+                        </div>
+
+                        <div class="row g-2 small text-muted bg-light rounded-3 p-3 mb-3">
+                            <div class="col-6">
+                                <i class="bi bi-layers me-1 text-primary"></i> Location: <strong class="text-dark" id="previewFloor">Floor 1</strong>
+                            </div>
+                            <div class="col-6">
+                                <i class="bi bi-people me-1 text-primary"></i> Capacity: <strong class="text-dark" id="previewCapacity">6 Pax</strong>
+                            </div>
+                            <div class="col-12 mt-2">
+                                <i class="bi bi-calendar-event me-1 text-primary"></i> Today's Bookings: <strong class="text-dark" id="previewBookings">4 Active Sessions</strong>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <span class="small fw-semibold text-muted d-block mb-2">Room Facilities</span>
+                            <div class="d-flex flex-wrap gap-2" id="previewFacilities">
+                                <span class="facility-pill"><i class="bi bi-easel"></i> Whiteboard</span>
+                                <span class="facility-pill"><i class="bi bi-tv"></i> 55" Smart TV</span>
+                                <span class="facility-pill"><i class="bi bi-wifi"></i> High-Speed Wi-Fi</span>
+                                <span class="facility-pill"><i class="bi bi-plug"></i> 4 Power Outlets</span>
+                            </div>
+                        </div>
+
+                        <div class="border-top pt-3 small">
+                            <span class="text-muted d-block mb-1">Current Operational Note:</span>
+                            <p class="mb-0 fw-medium text-dark" id="previewNote">All equipment functioning normally. Ready for student reservations.</p>
+                        </div>
+                    </div>
+
+                    <!-- Recent Status Changes Log -->
+                    <div class="card-roomsync p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold mb-0">Recent Status Updates</h6>
+                            <span class="badge bg-light text-muted border">Today</span>
+                        </div>
+
+                        <div class="list-group list-group-flush small" id="recentLogsList">
+                            <div class="list-group-item px-0 py-2.5 border-bottom">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="fw-bold">RM-202 — Media Room B2</span>
+                                    <span class="badge badge-maintenance rounded-pill">Maintenance</span>
+                                </div>
+                                <p class="text-muted mb-1">Projector bulb replacement in progress.</p>
+                                <small class="text-muted"><i class="bi bi-clock me-1"></i>Today, 10:15 AM • By Librarian</small>
+                            </div>
+
+                            <div class="list-group-item px-0 py-2.5 border-bottom">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="fw-bold">RM-301 — Seminar Pod C1</span>
+                                    <span class="badge badge-confirmed rounded-pill">Reserved</span>
+                                </div>
+                                <p class="text-muted mb-1">Reserved for Information Literacy Briefing.</p>
+                                <small class="text-muted"><i class="bi bi-clock me-1"></i>Today, 09:00 AM • By Librarian</small>
+                            </div>
+
+                            <div class="list-group-item px-0 pt-2.5 pb-0">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="fw-bold">RM-101 — Discussion Room A1</span>
+                                    <span class="badge badge-available rounded-pill">Available</span>
+                                </div>
+                                <p class="text-muted mb-1">Morning sanitization completed.</p>
+                                <small class="text-muted"><i class="bi bi-clock me-1"></i>Today, 08:05 AM • By Librarian</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="py-3 px-4 text-center text-md-start">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center">
+                <span>&copy; 2026 <strong>RoomSync</strong> — Library Room Booking System</span>
+                <span>Librarian Portal</span>
+            </div>
+        </footer>
+    </div>
+</div>
+
+<!-- Bootstrap JS & Custom Script -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../assets/js/script.js"></script>
+
+<script>
+    // Sample Room Data for Dynamic Preview
+    const roomsData = {
+        "RM-101": {
+            name: "Discussion Room A1",
+            floor: "Floor 1",
+            capacity: "6 Pax",
+            bookings: "4 Active Sessions",
+            status: "Available",
+            note: "All equipment functioning normally. Ready for student reservations.",
+            facilities: ["Whiteboard", "55\" Smart TV", "High-Speed Wi-Fi", "4 Power Outlets"]
+        },
+        "RM-102": {
+            name: "Discussion Room A2",
+            floor: "Floor 1",
+            capacity: "8 Pax",
+            bookings: "5 Active Sessions",
+            status: "Available",
+            note: "Markers and whiteboard eraser replenished.",
+            facilities: ["Glass Whiteboard", "HDMI Display", "Wi-Fi", "6 Power Outlets"]
+        },
+        "RM-201": {
+            name: "Media Room B1",
+            floor: "Floor 2",
+            capacity: "10 Pax",
+            bookings: "3 Active Sessions",
+            status: "Available",
+            note: "Audio-visual surround system tested and ready.",
+            facilities: ["HD Projector", "Surround Audio", "Video Conferencing", "Wi-Fi"]
+        },
+        "RM-202": {
+            name: "Media Room B2",
+            floor: "Floor 2",
+            capacity: "10 Pax",
+            bookings: "0 Active Sessions",
+            status: "Maintenance",
+            note: "Projector bulb replacement in progress until 5:00 PM.",
+            facilities: ["HD Projector", "Smart Podium", "Wi-Fi", "Air-Conditioned"]
+        },
+        "RM-301": {
+            name: "Seminar Pod C1",
+            floor: "Floor 3",
+            capacity: "15 Pax",
+            bookings: "2 Active Sessions",
+            status: "Reserved",
+            note: "Reserved for Information Literacy Briefing.",
+            facilities: ["Dual Monitors", "Wireless Mic", "Movable Chairs", "Wi-Fi"]
+        },
+        "RM-401": {
+            name: "Quiet Study Room D1",
+            floor: "Floor 4",
+            capacity: "4 Pax",
+            bookings: "6 Active Sessions",
+            status: "Available",
+            note: "Strict silent zone enforced.",
+            facilities: ["Acoustic Insulation", "Desk Lamps", "Individual Power Ports", "Wi-Fi"]
+        },
+        "RM-402": {
+            name: "Quiet Study Room D2",
+            floor: "Floor 4",
+            capacity: "4 Pax",
+            bookings: "6 Active Sessions",
+            status: "Available",
+            note: "Strict silent zone enforced.",
+            facilities: ["Acoustic Insulation", "Desk Lamps", "Individual Power Ports", "Wi-Fi"]
+        }
+    };
+
+    const roomSelect = document.getElementById("roomSelect");
+    const statusRadios = document.querySelectorAll('input[name="roomStatus"]');
+    const statusNotes = document.getElementById("statusNotes");
+    const updateStatusForm = document.getElementById("updateStatusForm");
+
+    // Apply badge styling based on status
+    function applyStatusBadge(element, status) {
+        element.className = "badge rounded-pill px-3 py-2";
+        if (status === "Available") {
+            element.classList.add("badge-available");
+        } else if (status === "Maintenance") {
+            element.classList.add("badge-maintenance");
+        } else {
+            element.classList.add("badge-confirmed");
+        }
+        element.textContent = status;
+    }
+
+    // Load room details into preview panel
+    function loadRoomPreview(roomCode) {
+        const room = roomsData[roomCode];
+        if (!room) return;
+
+        document.getElementById("previewCode").textContent = roomCode;
+        document.getElementById("previewName").textContent = room.name;
+        document.getElementById("previewFloor").textContent = room.floor;
+        document.getElementById("previewCapacity").textContent = room.capacity;
+        document.getElementById("previewBookings").textContent = room.bookings;
+        document.getElementById("previewNote").textContent = room.note;
+        statusNotes.value = room.note;
+
+        // Render facilities
+        const facilitiesContainer = document.getElementById("previewFacilities");
+        facilitiesContainer.innerHTML = room.facilities
+            .map(item => `<span class="facility-pill"><i class="bi bi-check2-circle text-primary"></i> ${item}</span>`)
+            .join("");
+
+        // Set radio button & badge to match room's current status
+        statusRadios.forEach(radio => {
+            radio.checked = (radio.value === room.status);
+        });
+        applyStatusBadge(document.getElementById("previewBadge"), room.status);
+    }
+
+    // Check URL query parameter (?room=RM-202) if navigated from Manage Rooms
+    const urlParams = new URLSearchParams(window.location.search);
+    const queryRoom = urlParams.get("room");
+    if (queryRoom && roomsData[queryRoom]) {
+        roomSelect.value = queryRoom;
+    }
+    loadRoomPreview(roomSelect.value);
+
+    // Update preview when room dropdown changes
+    roomSelect.addEventListener("change", function () {
+        loadRoomPreview(this.value);
+    });
+
+    // Live update badge preview when radio status changes
+    statusRadios.forEach(radio => {
+        radio.addEventListener("change", function () {
+            if (this.checked) {
+                applyStatusBadge(document.getElementById("previewBadge"), this.value);
+            }
+        });
+    });
+
+    // Live update note preview while typing
+    statusNotes.addEventListener("input", function () {
+        document.getElementById("previewNote").textContent = this.value.trim() || "No additional remarks provided.";
+    });
+
+    // Handle Form Submission
+    updateStatusForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        const selectedCode = roomSelect.value;
+        const selectedStatus = document.querySelector('input[name="roomStatus"]:checked').value;
+        const selectedReason = document.getElementById("reasonSelect").value;
+        const noteText = statusNotes.value.trim() || selectedReason;
+
+        // Update stored room state
+        roomsData[selectedCode].status = selectedStatus;
+        roomsData[selectedCode].note = noteText;
+
+        // Show confirmation alert
+        const alertBox = document.getElementById("statusAlert");
+        const alertMsg = document.getElementById("statusAlertMsg");
+        alertMsg.textContent = `${selectedCode} (${roomsData[selectedCode].name}) is now marked as ${selectedStatus}.`;
+        alertBox.classList.remove("d-none");
+
+        // Prepend to Recent Status Updates log
+        const badgeClass = selectedStatus === "Available"
+            ? "badge-available"
+            : selectedStatus === "Maintenance"
+                ? "badge-maintenance"
+                : "badge-confirmed";
+
+        const logItem = document.createElement("div");
+        logItem.className = "list-group-item px-0 py-2.5 border-bottom";
+        logItem.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="fw-bold">${selectedCode} — ${roomsData[selectedCode].name}</span>
+                <span class="badge ${badgeClass} rounded-pill">${selectedStatus}</span>
+            </div>
+            <p class="text-muted mb-1">${noteText}</p>
+            <small class="text-muted"><i class="bi bi-clock me-1"></i>Just now • By Librarian</small>
+        `;
+
+        const logsList = document.getElementById("recentLogsList");
+        logsList.insertBefore(logItem, logsList.firstChild);
+
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    // Reset button restores current room's saved preview
+    document.getElementById("resetFormBtn").addEventListener("click", function () {
+        setTimeout(() => loadRoomPreview(roomSelect.value), 10);
+    });
+</script>
+
+</body>
 </html>
