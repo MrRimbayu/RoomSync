@@ -1,9 +1,4 @@
 <!DOCTYPE html>
-<!--
-Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
-Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Html.html to edit this template
--->
-<!DOCTYPE html>
 <html lang="en">
 <head>
     <title>Browse Rooms - RoomSync</title>
@@ -48,14 +43,14 @@ Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Html.html to edit thi
                         <h3 class="fw-bold mb-1">Library Study &amp; Discussion Rooms</h3>
                         <p class="text-muted mb-0">Check room capacity, status, and facilities before booking.</p>
                     </div>
-                    <a href="booking_form.html" class="btn btn-primary-roomsync">
+                    <a href="booking_form.html?from=room_list" class="btn btn-primary-roomsync">
                         <i class="bi bi-plus-circle me-1"></i> Book a Room
                     </a>
                 </div>
 
                 <!-- Filter Bar -->
                 <div class="card card-roomsync p-3 mb-4">
-                    <form action="room_list.html" method="GET" class="row g-3 align-items-end">
+                    <form id="roomFilterForm" action="room_list.html" method="GET" class="row g-3 align-items-end">
                         <div class="col-md-4">
                             <label for="filter_status" class="form-label small fw-medium mb-1">Room Status</label>
                             <select class="form-select" id="filter_status" name="room_status">
@@ -83,10 +78,17 @@ Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Html.html to edit thi
                 </div>
 
                 <!-- Rooms Grid -->
-                <div class="row g-4">
+                <div class="row g-4" id="roomsGridContainer">
+
+                    <!-- Empty Filter State -->
+                    <div id="noRoomsAlert" class="col-12 d-none">
+                        <div class="alert alert-light border text-center text-muted py-4 mb-0">
+                            <i class="bi bi-search me-1"></i> No rooms match the selected status and capacity criteria.
+                        </div>
+                    </div>
 
                     <!-- Room 1 -->
-                    <div class="col-md-6 col-lg-4">
+                    <div class="col-md-6 col-lg-4 room-card-item" data-status="Available" data-capacity="6">
                         <div class="card card-roomsync card-hover p-4 h-100 d-flex flex-column">
                             <div class="d-flex justify-content-between align-items-start mb-3">
                                 <div class="stat-icon bg-primary bg-opacity-10 text-primary">
@@ -104,13 +106,13 @@ Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Html.html to edit thi
                             </div>
                             <div class="mt-auto d-flex gap-2">
                                 <a href="room_details.html?room_id=1" class="btn btn-light border flex-fill">Details</a>
-                                <a href="booking_form.html?room_id=1" class="btn btn-primary-roomsync flex-fill">Book Now</a>
+                                <a href="booking_form.html?roomName=Discussion%20Room%20A&from=room_list" class="btn btn-primary-roomsync flex-fill">Book Now</a>
                             </div>
                         </div>
                     </div>
 
                     <!-- Room 2 -->
-                    <div class="col-md-6 col-lg-4">
+                    <div class="col-md-6 col-lg-4 room-card-item" data-status="Available" data-capacity="12">
                         <div class="card card-roomsync card-hover p-4 h-100 d-flex flex-column">
                             <div class="d-flex justify-content-between align-items-start mb-3">
                                 <div class="stat-icon bg-primary bg-opacity-10 text-primary">
@@ -128,13 +130,13 @@ Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Html.html to edit thi
                             </div>
                             <div class="mt-auto d-flex gap-2">
                                 <a href="room_details.html?room_id=2" class="btn btn-light border flex-fill">Details</a>
-                                <a href="booking_form.html?room_id=2" class="btn btn-primary-roomsync flex-fill">Book Now</a>
+                                <a href="booking_form.html?roomName=Presentation%20Lab%201&from=room_list" class="btn btn-primary-roomsync flex-fill">Book Now</a>
                             </div>
                         </div>
                     </div>
 
                     <!-- Room 3 -->
-                    <div class="col-md-6 col-lg-4">
+                    <div class="col-md-6 col-lg-4 room-card-item" data-status="Available" data-capacity="4">
                         <div class="card card-roomsync card-hover p-4 h-100 d-flex flex-column">
                             <div class="d-flex justify-content-between align-items-start mb-3">
                                 <div class="stat-icon bg-primary bg-opacity-10 text-primary">
@@ -142,7 +144,7 @@ Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Html.html to edit thi
                                 </div>
                                 <span class="badge badge-available px-3 py-2 rounded-pill">Available</span>
                             </div>
-                            <h5 class="fw-bold mb-1">Collaborative Pod C</h5>
+                            <h5 class="fw-bold mb-1">Group Study Pod 1</h5>
                             <p class="text-muted small mb-3">
                                 <i class="bi bi-people me-1"></i>Capacity: <strong>4 Students</strong>
                             </p>
@@ -152,13 +154,13 @@ Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Html.html to edit thi
                             </div>
                             <div class="mt-auto d-flex gap-2">
                                 <a href="room_details.html?room_id=3" class="btn btn-light border flex-fill">Details</a>
-                                <a href="booking_form.html?room_id=3" class="btn btn-primary-roomsync flex-fill">Book Now</a>
+                                <a href="booking_form.html?roomName=Group%20Study%20Pod%201&from=room_list" class="btn btn-primary-roomsync flex-fill">Book Now</a>
                             </div>
                         </div>
                     </div>
 
                     <!-- Room 4 -->
-                    <div class="col-md-6 col-lg-4">
+                    <div class="col-md-6 col-lg-4 room-card-item" data-status="Occupied" data-capacity="8">
                         <div class="card card-roomsync card-hover p-4 h-100 d-flex flex-column">
                             <div class="d-flex justify-content-between align-items-start mb-3">
                                 <div class="stat-icon bg-secondary bg-opacity-10 text-secondary">
@@ -168,7 +170,7 @@ Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Html.html to edit thi
                             </div>
                             <h5 class="fw-bold mb-1">Discussion Room B</h5>
                             <p class="text-muted small mb-3">
-                                <i class="bi bi-people me-1"></i>Capacity: <strong>6 Students</strong>
+                                <i class="bi bi-people me-1"></i>Capacity: <strong>8 Students</strong>
                             </p>
                             <div class="bg-light rounded-3 p-3 small mb-4">
                                 <div class="fw-semibold text-dark mb-1">Facilities:</div>
@@ -176,13 +178,13 @@ Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Html.html to edit thi
                             </div>
                             <div class="mt-auto d-flex gap-2">
                                 <a href="room_details.html?room_id=4" class="btn btn-light border flex-fill">Details</a>
-                                <a href="booking_form.html?room_id=4" class="btn btn-outline-primary flex-fill">Book Later Slot</a>
+                                <a href="booking_form.html?roomName=Discussion%20Room%20B&from=room_list" class="btn btn-outline-primary flex-fill">Book Later Slot</a>
                             </div>
                         </div>
                     </div>
 
                     <!-- Room 5 -->
-                    <div class="col-md-6 col-lg-4">
+                    <div class="col-md-6 col-lg-4 room-card-item" data-status="Maintenance" data-capacity="20">
                         <div class="card card-roomsync card-hover p-4 h-100 d-flex flex-column opacity-75">
                             <div class="d-flex justify-content-between align-items-start mb-3">
                                 <div class="stat-icon bg-danger bg-opacity-10 text-danger">
@@ -190,9 +192,9 @@ Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Html.html to edit thi
                                 </div>
                                 <span class="badge bg-danger-subtle text-danger px-3 py-2 rounded-pill">Maintenance</span>
                             </div>
-                            <h5 class="fw-bold mb-1">Presentation Lab 2</h5>
+                            <h5 class="fw-bold mb-1">Computer &amp; Multimedia Room</h5>
                             <p class="text-muted small mb-3">
-                                <i class="bi bi-people me-1"></i>Capacity: <strong>10 Students</strong>
+                                <i class="bi bi-people me-1"></i>Capacity: <strong>20 Students</strong>
                             </p>
                             <div class="bg-light rounded-3 p-3 small mb-4">
                                 <div class="fw-semibold text-dark mb-1">Facilities:</div>

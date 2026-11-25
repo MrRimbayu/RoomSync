@@ -1,9 +1,4 @@
 <!DOCTYPE html>
-<!--
-Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
-Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Html.html to edit this template
--->
-<!DOCTYPE html>
 <html lang="en">
 <head>
     <title>Room Details - RoomSync</title>
@@ -54,24 +49,24 @@ Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Html.html to edit thi
                     <div class="col-lg-5">
                         <div class="card card-roomsync p-4 h-100">
                             <div class="d-flex justify-content-between align-items-start mb-3">
-                                <div class="stat-icon bg-primary bg-opacity-10 text-primary">
-                                    <i class="bi bi-door-open-fill"></i>
+                                <div class="stat-icon bg-primary bg-opacity-10 text-primary" id="roomIconBox">
+                                    <i class="bi bi-door-open-fill" id="roomIcon"></i>
                                 </div>
-                                <span class="badge badge-available px-3 py-2 rounded-pill">Available</span>
+                                <span class="badge badge-available px-3 py-2 rounded-pill" id="roomStatusBadge">Available</span>
                             </div>
 
-                            <small class="text-muted">Room ID: #1</small>
-                            <h3 class="fw-bold mb-3">Discussion Room A</h3>
+                            <small class="text-muted" id="roomIdText">Room ID: #1</small>
+                            <h3 class="fw-bold mb-3" id="roomNameText">Discussion Room A</h3>
 
                             <table class="table table-borderless table-sm small mb-4">
                                 <tbody>
                                     <tr>
                                         <td class="text-muted py-2"><i class="bi bi-people me-2"></i>Capacity:</td>
-                                        <td class="fw-semibold text-end py-2">6 Students</td>
+                                        <td class="fw-semibold text-end py-2" id="roomCapacityText">6 Students</td>
                                     </tr>
                                     <tr>
                                         <td class="text-muted py-2"><i class="bi bi-info-circle me-2"></i>Room Status:</td>
-                                        <td class="fw-semibold text-success text-end py-2">Available</td>
+                                        <td class="fw-semibold text-success text-end py-2" id="roomStatusText">Available</td>
                                     </tr>
                                 </tbody>
                             </table>
@@ -80,13 +75,13 @@ Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Html.html to edit thi
                                 <div class="fw-semibold small text-dark mb-1">
                                     <i class="bi bi-pc-display-horizontal text-primary me-1"></i> Facilities
                                 </div>
-                                <p class="small text-secondary mb-0">
+                                <p class="small text-secondary mb-0" id="roomFacilitiesText">
                                     43" Smart TV, HDMI Cable, Whiteboard, High-Speed Wi-Fi, 4 Power Outlets
                                 </p>
                             </div>
 
-                            <div class="mt-auto d-grid">
-                                <a href="booking_form.html?room_id=1" class="btn btn-primary-roomsync">
+                            <div class="mt-auto d-grid" id="bookButtonContainer">
+                                <a href="booking_form.html?roomName=Discussion%20Room%20A&from=room_details&room_id=1" class="btn btn-primary-roomsync" id="bookRoomBtn">
                                     <i class="bi bi-calendar-plus me-1"></i> Book This Room
                                 </a>
                             </div>
@@ -99,7 +94,7 @@ Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Html.html to edit thi
                             <div class="d-flex justify-content-between align-items-center mb-3">
                                 <div>
                                     <h5 class="fw-bold mb-0">Booked Time Slots</h5>
-                                    <small class="text-muted">Existing reservations for Discussion Room A</small>
+                                    <small class="text-muted" id="scheduleSubtitle">Existing reservations for Discussion Room A</small>
                                 </div>
                                 <span class="badge bg-light text-dark border">Library Hours: 08:00 AM - 06:00 PM</span>
                             </div>
@@ -114,24 +109,9 @@ Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Html.html to edit thi
                                             <th>Booking Status</th>
                                         </tr>
                                     </thead>
-                                    <tbody>
+                                    <tbody id="scheduleTableBody">
                                         <tr>
-                                            <td>2026-11-22</td>
-                                            <td>08:00 AM</td>
-                                            <td>10:00 AM</td>
-                                            <td><span class="badge badge-confirmed px-2 py-1 rounded-pill">Confirmed</span></td>
-                                        </tr>
-                                        <tr>
-                                            <td>2026-11-22</td>
-                                            <td>02:00 PM</td>
-                                            <td>04:00 PM</td>
-                                            <td><span class="badge badge-confirmed px-2 py-1 rounded-pill">Confirmed</span></td>
-                                        </tr>
-                                        <tr>
-                                            <td>2026-11-24</td>
-                                            <td>10:00 AM</td>
-                                            <td>12:00 PM</td>
-                                            <td><span class="badge badge-confirmed px-2 py-1 rounded-pill">Confirmed</span></td>
+                                            <td colspan="4" class="text-center text-muted py-3">Loading reservations...</td>
                                         </tr>
                                     </tbody>
                                 </table>

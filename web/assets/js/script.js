@@ -267,14 +267,13 @@ function loadBookingConfirmation() {
     const savedBookings = JSON.parse(localStorage.getItem("roomSyncBookings")) || [];
     const latestBooking = savedBookings.length > 0 ? savedBookings[savedBookings.length - 1] : null;
 
-    // [Ref: booking_confirmation.html] Room details lookup
+    // [Ref: booking_confirmation.html] Room details lookup (synced with room_list.html)
     const roomData = {
         "Discussion Room A": { location: "Library, Level 2 (East Wing)", capacity: "6 Students" },
-        "Discussion Room B": { location: "Library, Level 2 (West Wing)", capacity: "8 Students" },
-        "Group Study Pod 1": { location: "Library, Level 1 (Quiet Zone)", capacity: "4 Students" },
         "Presentation Lab 1": { location: "Library, Level 3 (Media Zone)", capacity: "12 Students" },
-        "Computer & Multimedia Room": { location: "Library, Level 3 (Digital Hub)", capacity: "20 Students" },
-        "Library Mini Auditorium": { location: "Library, Ground Floor", capacity: "30 Students" }
+        "Group Study Pod 1": { location: "Library, Level 1 (Quiet Zone)", capacity: "4 Students" },
+        "Discussion Room B": { location: "Library, Level 2 (West Wing)", capacity: "8 Students" },
+        "Computer & Multimedia Room": { location: "Library, Level 3 (Digital Hub)", capacity: "20 Students" }
     };
 
     const selectedRoom = (params.get("roomName") || (latestBooking && latestBooking.roomName) || "Discussion Room A").trim();
@@ -319,9 +318,58 @@ function loadBookingConfirmation() {
     }
 }
 
-// [Ref: booking_form.html] 2b. Populate logged-in user info & sync room summary card
+// Helper: Normalize booking date to YYYY-MM-DD for accurate slot comparison
+function normalizeBookingDateToISO(booking) {
+    if (booking.rawDate && booking.rawDate.includes("-")) {
+        return booking.rawDate.trim();
+    }
+    const parts = parseDateParts(booking.bookingDate || booking.date || "");
+    if (!parts) return "";
+    return `${parts.year}-${String(parts.month).padStart(2, "0")}-${String(parts.day).padStart(2, "0")}`;
+}
+
+// Helper: Get occupied start hours for a room & date
+function getOccupiedHoursForRoomAndDate(roomName, dateISO) {
+    const occupied = new Set();
+    if (!roomName || !dateISO) return occupied;
+
+    const savedBookings = JSON.parse(localStorage.getItem("roomSyncBookings")) || [];
+    savedBookings.forEach((b) => {
+        const status = b.bookingStatus || "Approved";
+        if (status === "Cancelled") return;
+        if ((b.roomName || "").trim() !== roomName.trim()) return;
+        if (normalizeBookingDateToISO(b) !== dateISO.trim()) return;
+
+        let startH = null;
+        if (b.rawStartTime && b.rawStartTime.includes(":")) {
+            startH = parseInt(b.rawStartTime.split(":")[0], 10);
+        } else if (b.startTime) {
+            const parsed = parse12HourTo24(b.startTime);
+            if (parsed) startH = parsed.hour;
+        }
+
+        const dur = parseInt(b.duration, 10) || 1;
+        if (startH !== null && !isNaN(startH)) {
+            for (let h = startH; h < startH + dur; h++) {
+                occupied.add(h);
+            }
+        }
+    });
+
+    return occupied;
+}
+
+// [Ref: booking_form.html] 2b. Populate logged-in user info, sync room dropdown with room_list, sync summary card, handle Back routing, lock preselected room & disable taken timeslots
 function setupBookingFormUI() {
-    const roomSelect = document.getElementById("roomSelect") || document.getElementById("roomName");
+    // Auto-detect study space <select> regardless of its HTML id attribute
+    let roomSelect = document.getElementById("roomSelect") || document.getElementById("roomName");
+    if (!roomSelect) {
+        roomSelect = Array.from(document.querySelectorAll("select")).find((sel) =>
+            Array.from(sel.options).some(
+                (opt) => opt.text.includes("Discussion Room A") || opt.text.includes("Library Mini Auditorium")
+            )
+        );
+    }
     if (!roomSelect) return;
 
     // [Ref: booking_form.html] Populate student name, ID, and topbar role badge from sessionStorage
@@ -341,19 +389,133 @@ function setupBookingFormUI() {
         topbarBadgeEl.innerHTML = `<i class="bi bi-person-circle me-1"></i> ${roleLabel}`;
     }
 
-    // [Ref: booking_form.html] Room metadata for right-column summary card & pax max limit
+    // [Ref: booking_form.html] Room metadata synced 100% with room_list.html & room_details.html
     const roomDetailsMap = {
-        "Discussion Room A": { location: "Level 2, East Wing", capacity: 6 },
-        "Discussion Room B": { location: "Level 2, East Wing", capacity: 8 },
-        "Group Study Pod 1": { location: "Level 1, Quiet Zone", capacity: 4 },
-        "Presentation Lab 1": { location: "Level 3, Media Zone", capacity: 12 },
-        "Computer & Multimedia Room": { location: "Level 3, Digital Hub", capacity: 20 },
-        "Library Mini Auditorium": { location: "Level 3, Main Hall", capacity: 30 }
+        "Discussion Room A": { id: "1", location: "Level 2, East Wing", capacity: 6, status: "Available" },
+        "Presentation Lab 1": { id: "2", location: "Level 3, Media Zone", capacity: 12, status: "Available" },
+        "Group Study Pod 1": { id: "3", location: "Level 1, Quiet Zone", capacity: 4, status: "Available" },
+        "Discussion Room B": { id: "4", location: "Level 2, West Wing", capacity: 8, status: "Occupied" },
+        "Computer & Multimedia Room": { id: "5", location: "Level 3, Digital Hub", capacity: 20, status: "Maintenance" }
     };
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const preselectedRoom = urlParams.get("roomName");
+    const fromSource = urlParams.get("from");
+    const roomIdParam = urlParams.get("room_id");
+
+    // 0. Replace hardcoded options (e.g. Library Mini Auditorium) with the exact 5 synced rooms
+    const currentSelection = preselectedRoom || roomSelect.value;
+    roomSelect.innerHTML = "";
+    Object.keys(roomDetailsMap).forEach((roomName) => {
+        const info = roomDetailsMap[roomName];
+        const opt = document.createElement("option");
+        opt.value = roomName;
+        if (info.status === "Maintenance") {
+            opt.textContent = `${roomName} (${info.capacity} Students - Maintenance)`;
+            opt.disabled = true;
+        } else {
+            opt.textContent = `${roomName} (${info.capacity} Students)`;
+        }
+        roomSelect.appendChild(opt);
+    });
+
+    if (currentSelection && roomDetailsMap[currentSelection] && roomDetailsMap[currentSelection].status !== "Maintenance") {
+        roomSelect.value = currentSelection;
+    } else {
+        roomSelect.value = "Discussion Room A";
+    }
+
+    // 1. Dynamic Back button destination (room_list vs selected room's room_details)
+    const backLinks = document.querySelectorAll('a[href*="room_details.html"], a[href*="room_list.html"], #backToRoomBtn');
+    backLinks.forEach((link) => {
+        if (link.closest("#sidebar") || link.closest("#sidebarContainer")) return;
+        if (fromSource === "room_list") {
+            link.href = "room_list.html";
+            if (link.textContent.toLowerCase().includes("back")) {
+                link.innerHTML = '<i class="bi bi-arrow-left me-1"></i> Back to Browse Rooms';
+            }
+        } else if (fromSource === "room_details") {
+            const matchedInfo = preselectedRoom ? roomDetailsMap[preselectedRoom] : null;
+            const targetId = roomIdParam || (matchedInfo && matchedInfo.id) || "1";
+            link.href = `room_details.html?room_id=${encodeURIComponent(targetId)}`;
+            if (link.textContent.toLowerCase().includes("back")) {
+                link.innerHTML = `<i class="bi bi-arrow-left me-1"></i> Back to ${preselectedRoom || "Room Details"}`;
+            }
+        }
+    });
+
+    // 2. Auto-select & lock room dropdown when redirected from a specific room ("Book Now" / "Book This Room")
+    if (preselectedRoom && roomDetailsMap[preselectedRoom]) {
+        roomSelect.value = preselectedRoom;
+        roomSelect.classList.add("bg-light", "text-muted");
+        roomSelect.style.pointerEvents = "none";
+        roomSelect.setAttribute("tabindex", "-1");
+        roomSelect.setAttribute("aria-readonly", "true");
+    }
 
     const summaryTitle = document.getElementById("summaryRoomTitle");
     const summaryMeta = document.getElementById("summaryRoomMeta");
     const paxInput = document.getElementById("pax");
+    const bookingDateInput = document.getElementById("bookingDate");
+    const startTimeSelect = document.getElementById("startTime");
+    const durationSelect = document.getElementById("duration");
+
+    // 3. Grey out / disable already-booked time slots for the selected room & date
+    function updateAvailableTimeSlots() {
+        if (!startTimeSelect) return;
+
+        const selectedRoom = roomSelect.value;
+        const selectedDate = bookingDateInput ? bookingDateInput.value : "";
+        const occupiedHours = getOccupiedHoursForRoomAndDate(selectedRoom, selectedDate);
+
+        Array.from(startTimeSelect.options).forEach((opt) => {
+            if (!opt.value) return;
+
+            if (!opt.dataset.originalLabel) {
+                opt.dataset.originalLabel = opt.textContent;
+            }
+
+            const hour = parseInt(opt.value.split(":")[0], 10);
+            if (!isNaN(hour) && occupiedHours.has(hour)) {
+                opt.disabled = true;
+                opt.textContent = `${opt.dataset.originalLabel} (Booked)`;
+                opt.style.color = "#9ca3af";
+            } else {
+                opt.disabled = false;
+                opt.textContent = opt.dataset.originalLabel;
+                opt.style.color = "";
+            }
+        });
+
+        const currentOpt = startTimeSelect.options[startTimeSelect.selectedIndex];
+        if (currentOpt && currentOpt.disabled) {
+            const firstAvailable = Array.from(startTimeSelect.options).find((o) => !o.disabled && o.value);
+            startTimeSelect.value = firstAvailable ? firstAvailable.value : "";
+        }
+
+        if (durationSelect && startTimeSelect.value) {
+            const startHour = parseInt(startTimeSelect.value.split(":")[0], 10);
+            Array.from(durationSelect.options).forEach((durOpt) => {
+                const dur = parseInt(durOpt.value, 10);
+                if (isNaN(dur)) return;
+
+                let overlaps = false;
+                for (let h = startHour; h < startHour + dur; h++) {
+                    if (occupiedHours.has(h)) {
+                        overlaps = true;
+                        break;
+                    }
+                }
+                durOpt.disabled = overlaps;
+            });
+
+            const currentDurOpt = durationSelect.options[durationSelect.selectedIndex];
+            if (currentDurOpt && currentDurOpt.disabled) {
+                const firstValidDur = Array.from(durationSelect.options).find((o) => !o.disabled);
+                if (firstValidDur) durationSelect.value = firstValidDur.value;
+            }
+        }
+    }
 
     function updateRoomSummary() {
         const selectedRoom = roomSelect.value;
@@ -368,9 +530,16 @@ function setupBookingFormUI() {
         if (paxInput && info) {
             paxInput.max = info.capacity;
         }
+        updateAvailableTimeSlots();
     }
 
     roomSelect.addEventListener("change", updateRoomSummary);
+    if (bookingDateInput) {
+        bookingDateInput.addEventListener("change", updateAvailableTimeSlots);
+    }
+    if (startTimeSelect) {
+        startTimeSelect.addEventListener("change", updateAvailableTimeSlots);
+    }
     updateRoomSummary();
 }
 
@@ -379,8 +548,13 @@ function setupBookingForm() {
     const form = document.getElementById("bookingForm");
     if (!form) return;
 
-    form.addEventListener("submit", function () {
-        const roomSelectEl = document.getElementById("roomSelect") || document.getElementById("roomName");
+    form.addEventListener("submit", function (e) {
+        let roomSelectEl = document.getElementById("roomSelect") || document.getElementById("roomName");
+        if (!roomSelectEl) {
+            roomSelectEl = Array.from(form.querySelectorAll("select")).find((sel) =>
+                Array.from(sel.options).some((opt) => opt.text.includes("Discussion Room A"))
+            );
+        }
         const roomName = roomSelectEl ? roomSelectEl.value : "";
         const bookingDate = document.getElementById("bookingDate").value;
         const startTimeRaw = document.getElementById("startTime").value;
@@ -393,6 +567,16 @@ function setupBookingForm() {
         // [Ref: booking_form.html] Calculate formatted start and end time
         const startHour = parseInt(startTimeRaw.split(":")[0], 10);
         const endHour = startHour + duration;
+
+        // Extra guard against duplicate booking on the same room, date & time slot
+        const occupiedHours = getOccupiedHoursForRoomAndDate(roomName, bookingDate);
+        for (let h = startHour; h < endHour; h++) {
+            if (occupiedHours.has(h)) {
+                e.preventDefault();
+                alert("This time slot is already booked for the selected room and date. Please choose another available time.");
+                return;
+            }
+        }
 
         const startTimeFormatted = formatTime12Hour(startHour);
         const endTimeFormatted = formatTime12Hour(endHour);
@@ -569,7 +753,169 @@ function deleteBooking(savedIndex) {
     }
 }
 
-// [Ref: register.html, login.html, booking_form.html, booking_confirmation.html, my_bookings.html, components.js] 7. Global initialization
+// [Ref: room_details.html] 8. Load dynamic room details based on URL parameter (?room_id=...)
+function loadRoomDetailsPage() {
+    const roomNameEl = document.getElementById("roomNameText");
+    if (!roomNameEl) return;
+
+    const roomsCatalog = {
+        "1": {
+            room_id: 1,
+            room_name: "Discussion Room A",
+            capacity: 6,
+            room_status: "Available",
+            facilities: '43" Smart TV, HDMI Cable, Whiteboard, High-Speed Wi-Fi, 4 Power Outlets',
+            icon: "bi-door-open-fill"
+        },
+        "2": {
+            room_id: 2,
+            room_name: "Presentation Lab 1",
+            capacity: 12,
+            room_status: "Available",
+            facilities: "HD Projector, Podium, Microphone, Acoustic Walls, Wi-Fi",
+            icon: "bi-easel-fill"
+        },
+        "3": {
+            room_id: 3,
+            room_name: "Group Study Pod 1",
+            capacity: 4,
+            room_status: "Available",
+            facilities: "Glass Whiteboard, High-Speed Wi-Fi, 2 Power Outlets",
+            icon: "bi-door-open-fill"
+        },
+        "4": {
+            room_id: 4,
+            room_name: "Discussion Room B",
+            capacity: 8,
+            room_status: "Occupied",
+            facilities: "Whiteboard, HDMI Monitor, Wi-Fi, 4 Power Outlets",
+            icon: "bi-door-closed-fill"
+        },
+        "5": {
+            room_id: 5,
+            room_name: "Computer & Multimedia Room",
+            capacity: 20,
+            room_status: "Maintenance",
+            facilities: "Smart Board, Video Conferencing Camera, Wi-Fi",
+            icon: "bi-tools"
+        }
+    };
+
+    const params = new URLSearchParams(window.location.search);
+    const roomId = params.get("room_id") || "1";
+    const room = roomsCatalog[roomId] || roomsCatalog["1"];
+
+    document.getElementById("roomIdText").textContent = "Room ID: #" + room.room_id;
+    roomNameEl.textContent = room.room_name;
+    document.getElementById("roomCapacityText").textContent = room.capacity + " Students";
+    document.getElementById("roomFacilitiesText").textContent = room.facilities;
+    document.getElementById("scheduleSubtitle").textContent = "Existing reservations for " + room.room_name;
+
+    const iconBox = document.getElementById("roomIconBox");
+    const iconEl = document.getElementById("roomIcon");
+    const badgeEl = document.getElementById("roomStatusBadge");
+    const statusTextEl = document.getElementById("roomStatusText");
+    const btnContainer = document.getElementById("bookButtonContainer");
+
+    iconEl.className = "bi " + room.icon;
+    badgeEl.textContent = room.room_status;
+    statusTextEl.textContent = room.room_status;
+
+    const encodedRoomName = encodeURIComponent(room.room_name);
+
+    if (room.room_status === "Available") {
+        iconBox.className = "stat-icon bg-primary bg-opacity-10 text-primary";
+        badgeEl.className = "badge badge-available px-3 py-2 rounded-pill";
+        statusTextEl.className = "fw-semibold text-success text-end py-2";
+        btnContainer.innerHTML = `<a href="booking_form.html?roomName=${encodedRoomName}&from=room_details&room_id=${room.room_id}" class="btn btn-primary-roomsync"><i class="bi bi-calendar-plus me-1"></i> Book This Room</a>`;
+    } else if (room.room_status === "Occupied") {
+        iconBox.className = "stat-icon bg-secondary bg-opacity-10 text-secondary";
+        badgeEl.className = "badge bg-warning-subtle text-warning px-3 py-2 rounded-pill";
+        statusTextEl.className = "fw-semibold text-warning text-end py-2";
+        btnContainer.innerHTML = `<a href="booking_form.html?roomName=${encodedRoomName}&from=room_details&room_id=${room.room_id}" class="btn btn-outline-primary"><i class="bi bi-calendar-plus me-1"></i> Book Later Slot</a>`;
+    } else {
+        iconBox.className = "stat-icon bg-danger bg-opacity-10 text-danger";
+        badgeEl.className = "badge bg-danger-subtle text-danger px-3 py-2 rounded-pill";
+        statusTextEl.className = "fw-semibold text-danger text-end py-2";
+        btnContainer.innerHTML = `<button type="button" class="btn btn-secondary" disabled>Room Under Maintenance</button>`;
+    }
+
+    // Populate booked time slots from localStorage for this room
+    const tbody = document.getElementById("scheduleTableBody");
+    const savedBookings = JSON.parse(localStorage.getItem("roomSyncBookings")) || [];
+    const roomBookings = savedBookings.filter(
+        (b) => b.roomName === room.room_name && b.bookingStatus !== "Cancelled"
+    );
+
+    if (tbody) {
+        if (roomBookings.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted py-3">No active reservations scheduled for this room.</td></tr>`;
+        } else {
+            tbody.innerHTML = roomBookings.map((b) => `
+                <tr>
+                    <td>${b.bookingDate || b.rawDate}</td>
+                    <td>${b.startTime}</td>
+                    <td>${b.endTime}</td>
+                    <td><span class="badge badge-confirmed px-2 py-1 rounded-pill">${b.bookingStatus || "Approved"}</span></td>
+                </tr>
+            `).join("");
+        }
+    }
+}
+
+// [Ref: room_list.html] 9. Filter rooms by both Room Status and Minimum Capacity
+function setupRoomListFilter() {
+    const filterForm = document.getElementById("roomFilterForm");
+    if (!filterForm) return;
+
+    const statusSelect = document.getElementById("filter_status");
+    const capacitySelect = document.getElementById("filter_capacity");
+    const roomCards = document.querySelectorAll(".room-card-item");
+    const noRoomsAlert = document.getElementById("noRoomsAlert");
+
+    function applyRoomFilters() {
+        const selectedStatus = statusSelect ? statusSelect.value.trim() : "";
+        const minCapacity = capacitySelect && capacitySelect.value ? parseInt(capacitySelect.value, 10) : 0;
+        let visibleCount = 0;
+
+        roomCards.forEach((card) => {
+            const cardStatus = card.getAttribute("data-status") || "";
+            const cardCapacity = parseInt(card.getAttribute("data-capacity") || "0", 10);
+
+            const matchesStatus = !selectedStatus || cardStatus === selectedStatus;
+            const matchesCapacity = !minCapacity || cardCapacity >= minCapacity;
+
+            if (matchesStatus && matchesCapacity) {
+                card.classList.remove("d-none");
+                visibleCount++;
+            } else {
+                card.classList.add("d-none");
+            }
+        });
+
+        if (noRoomsAlert) {
+            if (visibleCount === 0) {
+                noRoomsAlert.classList.remove("d-none");
+            } else {
+                noRoomsAlert.classList.add("d-none");
+            }
+        }
+    }
+
+    filterForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+        applyRoomFilters();
+    });
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("room_status") || params.has("capacity")) {
+        if (statusSelect && params.get("room_status")) statusSelect.value = params.get("room_status");
+        if (capacitySelect && params.get("capacity")) capacitySelect.value = params.get("capacity");
+        applyRoomFilters();
+    }
+}
+
+// [Ref: register.html, login.html, booking_form.html, booking_confirmation.html, my_bookings.html, room_list.html, room_details.html, components.js] 7. Global initialization
 document.addEventListener("DOMContentLoaded", () => {
     setupRegisterPage();
     setupLoginPage();
@@ -578,6 +924,8 @@ document.addEventListener("DOMContentLoaded", () => {
     setupBookingForm();
     loadMyBookings();
     updateWeeklyQuotaDisplay();
+    loadRoomDetailsPage();
+    setupRoomListFilter();
 
     // [Ref: components.js & student pages] Toggle sidebar for desktop and mobile views
     const sidebar = document.getElementById("sidebar");
