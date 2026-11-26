@@ -1,9 +1,4 @@
 <!DOCTYPE html>
-<!--
-Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
-Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Html.html to edit this template
--->
-<!DOCTYPE html>
 <html lang="en">
 <head>
     <title>Register - RoomSync</title>
@@ -13,17 +8,17 @@ Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Html.html to edit thi
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <!-- Shared Group Stylesheet -->
+    <!-- Main Group Stylesheet -->
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body class="d-flex flex-column min-vh-100">
 
-    <!-- Main Centered Register Container -->
+    <!-- Main Register Section -->
     <main class="container my-auto py-5">
         <div class="row justify-content-center">
             <div class="col-md-8 col-lg-6 col-xl-5">
 
-                <!-- Brand Header -->
+                <!-- Logo and System Title -->
                 <div class="text-center mb-4">
                     <a href="index.html" class="text-decoration-none d-inline-flex align-items-center justify-content-center mb-2">
                         <i class="bi bi-door-open-fill text-primary fs-2 me-2"></i>
@@ -32,60 +27,71 @@ Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Html.html to edit thi
                     <p class="text-muted small mb-0">Create your Library Space Account</p>
                 </div>
 
-                <!-- Registration Card -->
+                <!-- Register Form Card -->
                 <div class="card card-roomsync p-4">
                     <h5 class="fw-bold mb-1">Student &amp; Staff Registration</h5>
                     <p class="text-muted small mb-4">Fill in your details below to access library room reservations.</p>
 
-                    <form action="login.html" method="GET">
+                    <!-- Error Message Box (Hidden by default) -->
+                    <div id="errorAlert" class="alert alert-danger py-2 small d-none" role="alert">
+                        <i class="bi bi-exclamation-circle me-1"></i><span id="errorText"></span>
+                    </div>
+
+                    <!-- Success Message Box (Hidden by default) -->
+                    <div id="successAlert" class="alert alert-success py-2 small d-none" role="alert">
+                        <i class="bi bi-check-circle me-1"></i><span id="successText"></span>
+                    </div>
+
+                    <!-- Registration Form -->
+                    <form action="login.html" method="GET" id="registerForm">
                         <div class="row g-3">
-                            <!-- Full Name -->
+                            <!-- Full Name Input -->
                             <div class="col-12">
                                 <label for="fullName" class="form-label fw-medium small">Full Name</label>
                                 <input type="text" class="form-control" id="fullName" placeholder="e.g. Ahmad Daniel Bin Razak" required>
                             </div>
 
-                            <!-- Student / Staff ID -->
+                            <!-- Student or Staff ID Input -->
                             <div class="col-md-6">
                                 <label for="userId" class="form-label fw-medium small">Student / Staff ID</label>
                                 <input type="text" class="form-control" id="userId" placeholder="e.g. 2024123456" required>
                             </div>
 
-                            <!-- Role -->
+                            <!-- Account Role Dropdown -->
                             <div class="col-md-6">
-                                <label for="regRole" class="form-label fw-medium small">Account Role</label>
-                                <select class="form-select" id="regRole" required>
-                                    <option value="student" selected>Student</option>
-                                    <option value="librarian">Librarian</option>
+                                <label for="role" class="form-label fw-medium small">Account Role</label>
+                                <select class="form-select" id="role" required>
+                                    <option value="Student" selected>Student</option>
+                                    <option value="Librarian">Librarian</option>
                                 </select>
                             </div>
 
-                            <!-- University Email -->
+                            <!-- University Email Input -->
                             <div class="col-12">
                                 <label for="email" class="form-label fw-medium small">University Email</label>
                                 <input type="email" class="form-control" id="email" placeholder="e.g. 2024123456@student.uitm.edu.my" required>
                             </div>
 
-                            <!-- Faculty / Department -->
+                            <!-- Faculty or Department Input -->
                             <div class="col-12">
                                 <label for="faculty" class="form-label fw-medium small">Faculty / Department</label>
                                 <input type="text" class="form-control" id="faculty" placeholder="e.g. College of Computing, Informatics and Mathematics" required>
                             </div>
 
-                            <!-- Password -->
+                            <!-- Password Input -->
                             <div class="col-md-6">
-                                <label for="regPassword" class="form-label fw-medium small">Password</label>
-                                <input type="password" class="form-control" id="regPassword" placeholder="Create password" required>
+                                <label for="password" class="form-label fw-medium small">Password</label>
+                                <input type="password" class="form-control" id="password" placeholder="Create password" required>
                             </div>
 
-                            <!-- Confirm Password -->
+                            <!-- Confirm Password Input -->
                             <div class="col-md-6">
                                 <label for="confirmPassword" class="form-label fw-medium small">Confirm Password</label>
                                 <input type="password" class="form-control" id="confirmPassword" placeholder="Repeat password" required>
                             </div>
                         </div>
 
-                        <!-- Terms Checkbox -->
+                        <!-- Agreement Checkbox -->
                         <div class="form-check my-4">
                             <input class="form-check-input" type="checkbox" id="agreeTerms" required>
                             <label class="form-check-label small text-muted" for="agreeTerms">
@@ -103,13 +109,14 @@ Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Html.html to edit thi
 
                     <hr class="my-4">
 
+                    <!-- Link to Login Page -->
                     <p class="text-center small text-muted mb-0">
                         Already have an account?
                         <a href="login.html" class="fw-semibold text-decoration-none">Sign in here</a>
                     </p>
                 </div>
 
-                <!-- Back to Landing Page -->
+                <!-- Back to Home Link -->
                 <div class="text-center mt-3">
                     <a href="index.html" class="text-decoration-none text-muted small">
                         <i class="bi bi-arrow-left me-1"></i> Back to Home
@@ -120,14 +127,14 @@ Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Html.html to edit thi
         </div>
     </main>
 
-    <!-- Shared Footer -->
+    <!-- Page Footer -->
     <footer class="py-3 text-center">
         <div class="container">
             <span>&copy; 2026 RoomSync - Library Space Reservation and Management System</span>
         </div>
     </footer>
 
-    <!-- Bootstrap 5 JS -->
+    <!-- Bootstrap JS and Main Group Script -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="assets/js/script.js"></script>
 </body>

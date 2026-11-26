@@ -3,7 +3,7 @@ Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to c
 Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/CascadeStyleSheet.css to edit this template
 */
 /* 
-    Created on : Nov 18, 2026, 11:08:15 AM
+    Created on : Nov 18, 2026, 11:08:15 AM
     Author     : MSI M14
 */
 
@@ -198,6 +198,358 @@ body {
     font-weight: 600;
 }
 
+/* =========================================
+   Booking Analytics Heatmap Styles
+   ========================================= */
+.heatmap-table th {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-align: center;
+    border-bottom: 1px solid var(--border-color);
+    padding: 0.5rem 0.25rem;
+}
+
+.heatmap-table td.time-col {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    white-space: nowrap;
+    width: 85px;
+}
+
+.heatmap-cell {
+    height: 36px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    font-weight: 600;
+    transition: transform 0.15s ease;
+}
+
+.heatmap-cell:hover {
+    transform: scale(1.06);
+    cursor: default;
+}
+
+.heat-low {
+    background-color: #dbeafe;
+    color: #1e40af;
+}
+
+.heat-mid {
+    background-color: #fed7aa;
+    color: #9a3412;
+}
+
+.heat-high {
+    background-color: #f97316;
+    color: #ffffff;
+}
+
+.legend-box {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    display: inline-block;
+}
+
+/* =========================================
+   Daily Booking Schedule Timeline Styles
+   ========================================= */
+.timeline-table {
+    min-width: 980px;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.timeline-table th {
+    background-color: #1e293b;
+    color: #ffffff;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-align: center;
+    padding: 0.65rem 0.35rem;
+    border-right: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.timeline-table th.room-col {
+    text-align: left;
+    padding-left: 1rem;
+    width: 210px;
+    position: sticky;
+    left: 0;
+    z-index: 2;
+}
+
+.timeline-table td.room-cell {
+    background-color: #ffffff;
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    border-right: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color);
+    padding: 0.6rem 0.85rem;
+}
+
+.timeline-table td.slot-cell {
+    border-right: 1px solid #f1f5f9;
+    border-bottom: 1px solid var(--border-color);
+    padding: 4px;
+    height: 52px;
+    vertical-align: middle;
+}
+
+.slot-block {
+    height: 36px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 600;
+    transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.slot-available {
+    background-color: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    color: #94a3b8;
+}
+
+.slot-booked {
+    background-color: #0d6efd;
+    color: #ffffff;
+    cursor: pointer;
+}
+
+.slot-booked:hover {
+    background-color: #0b5ed7;
+    transform: scale(1.03);
+}
+
+.slot-completed {
+    background-color: #198754;
+    color: #ffffff;
+    cursor: pointer;
+}
+
+.slot-completed:hover {
+    background-color: #157347;
+    transform: scale(1.03);
+}
+
+.slot-cancelled {
+    background-color: #dc3545;
+    color: #ffffff;
+    cursor: pointer;
+}
+
+.slot-cancelled:hover {
+    background-color: #bb2d3b;
+    transform: scale(1.03);
+}
+
+.slot-unavailable {
+    background: repeating-linear-gradient(
+        -45deg,
+        #e2e8f0,
+        #e2e8f0 5px,
+        #f1f5f9 5px,
+        #f1f5f9 10px
+    );
+    color: #64748b;
+}
+
+.legend-swatch {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    display: inline-block;
+}
+
+/* =========================================
+   Booking Details Modal Styles
+   ========================================= */
+#bookingDetailsModal .modal-dialog {
+    max-width: 560px;
+}
+
+#bookingDetailsModal .modal-content {
+    --modal-accent: #2563eb;
+    --modal-soft: #eff6ff;
+    --modal-border: #dbeafe;
+    border: 1px solid #e8edf3 !important;
+    border-radius: 18px !important;
+    overflow: hidden;
+    box-shadow: 0 18px 55px rgba(15, 23, 42, .18) !important;
+}
+
+#bookingDetailsModal .modal-content.theme-booked {
+    --modal-accent: #2563eb;
+    --modal-soft: #eff6ff;
+    --modal-border: #dbeafe;
+}
+
+#bookingDetailsModal .modal-content.theme-completed {
+    --modal-accent: #198754;
+    --modal-soft: #ecfdf3;
+    --modal-border: #ccebd8;
+}
+
+#bookingDetailsModal .modal-content.theme-cancelled {
+    --modal-accent: #dc3545;
+    --modal-soft: #fff1f2;
+    --modal-border: #f8cdd2;
+}
+
+#bookingDetailsModal .modal-header {
+    position: relative;
+    padding: 1.3rem 1.5rem;
+    background: var(--modal-soft) !important;
+    color: #263445;
+    border-bottom: 1px solid var(--modal-border);
+}
+
+#bookingDetailsModal .modal-header::before {
+    display: none;
+}
+
+#bookingDetailsModal .modal-header .modal-title {
+    color: #263445 !important;
+    font-size: 1.1rem;
+}
+
+#bookingDetailsModal .modal-header .modal-title i,
+#bookingDetailsModal .booking-reference-id {
+    color: var(--modal-accent) !important;
+}
+
+#bookingDetailsModal .modal-header small {
+    color: #718096 !important;
+    font-size: .78rem;
+}
+
+#bookingDetailsModal .modal-header .btn-close {
+    filter: none;
+    opacity: .65;
+}
+
+#bookingDetailsModal .modal-header .btn-close:hover {
+    opacity: 1;
+}
+
+#bookingDetailsModal .modal-body {
+    padding: 1.5rem !important;
+}
+
+#bookingDetailsModal .booking-reference {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: .95rem 1rem;
+    margin-bottom: 1.2rem;
+    background: var(--modal-soft);
+    border: 1px solid var(--modal-border);
+    border-radius: 12px;
+}
+
+#bookingDetailsModal .booking-reference-label,
+#bookingDetailsModal .detail-label {
+    display: block;
+    margin-bottom: .28rem;
+    color: #8792a2;
+    font-size: .69rem;
+    font-weight: 700;
+    letter-spacing: .055em;
+    text-transform: uppercase;
+}
+
+#bookingDetailsModal .booking-reference-id {
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+#bookingDetailsModal .detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .8rem;
+}
+
+#bookingDetailsModal .detail-item {
+    min-width: 0;
+    padding: .85rem .9rem;
+    background: #fff;
+    border: 1px solid var(--modal-border);
+    border-radius: 11px;
+}
+
+#bookingDetailsModal .detail-value {
+    display: block;
+    color: #263244;
+    font-size: .85rem;
+    font-weight: 600;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+#bookingDetailsModal .detail-label i {
+    margin-right: .3rem;
+    color: #94a3b8;
+}
+
+#bookingDetailsModal .purpose-panel {
+    margin-top: .85rem;
+    padding: 1rem;
+    background: var(--modal-soft);
+    border: 1px solid var(--modal-border);
+    border-radius: 11px;
+}
+
+#bookingDetailsModal .purpose-panel .detail-value {
+    font-weight: 500;
+    line-height: 1.6;
+}
+
+#bookingDetailsModal .modal-footer {
+    padding: .9rem 1.5rem 1.1rem;
+    background: #fff;
+    border-top: 1px solid #edf1f5;
+}
+
+#bookingDetailsModal .modal-footer .btn {
+    min-width: 92px;
+    border-radius: 8px;
+    padding: .42rem 1rem;
+    font-weight: 600;
+}
+
+#bookingDetailsModal .booking-status {
+    font-size: .73rem;
+    font-weight: 600;
+}
+
+@media (max-width: 575.98px) {
+    #bookingDetailsModal .modal-body {
+        padding: 1.1rem !important;
+    }
+    #bookingDetailsModal .modal-header {
+        padding: 1.1rem 1.2rem;
+    }
+    #bookingDetailsModal .modal-footer {
+        padding: .85rem 1.2rem 1rem;
+    }
+    #bookingDetailsModal .detail-grid {
+        gap: .6rem;
+    }
+    #bookingDetailsModal .detail-item {
+        padding: .72rem;
+    }
+}
+
 /* Footer */
 footer {
     margin-top: auto;
@@ -219,4 +571,47 @@ footer {
         margin-left: 0;
         width: 100%;
     }
+}
+
+/* =========================================
+   Update Room Status Styles
+   ========================================= */
+.status-option-card {
+    border: 1.5px solid var(--border-color);
+    border-radius: 10px;
+    padding: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background-color: #ffffff;
+}
+
+.status-option-card:hover {
+    border-color: #94a3b8;
+    background-color: #f8fafc;
+}
+
+.btn-check:checked + .status-option-card.opt-available {
+    border-color: #16a34a;
+    background-color: #f0fdf4;
+}
+
+.btn-check:checked + .status-option-card.opt-maintenance {
+    border-color: #dc2626;
+    background-color: #fef2f2;
+}
+
+.btn-check:checked + .status-option-card.opt-reserved {
+    border-color: #2563eb;
+    background-color: #eff6ff;
+}
+
+.facility-pill {
+    font-size: 0.78rem;
+    background-color: #f1f5f9;
+    color: #334155;
+    padding: 0.3rem 0.65rem;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
 }

@@ -436,68 +436,9 @@ Click nbfs://nbhost/SystemFileSystem/Templates/JSP_Servlet/Html.html to edit thi
 <!-- Bootstrap JS & Custom Script -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="../assets/js/script.js"></script>
+<script src="../assets/js/sidebar_librarian.js"></script>
+<script src="../assets/js/script.js"></script>
 
-<script>
-    // Filter & Search Rooms
-    const searchInput = document.getElementById('roomSearchInput');
-    const filterButtons = document.querySelectorAll('.filter-btn');
-    const roomItems = document.querySelectorAll('.room-item');
-    let activeFilter = 'all';
-
-    function filterRooms() {
-        const keyword = searchInput.value.toLowerCase().trim();
-        roomItems.forEach(item => {
-            const status = item.getAttribute('data-status');
-            const text = item.getAttribute('data-search').toLowerCase();
-            const matchStatus = (activeFilter === 'all' || status === activeFilter);
-            const matchSearch = text.includes(keyword);
-            item.style.display = (matchStatus && matchSearch) ? '' : 'none';
-        });
-    }
-
-    searchInput.addEventListener('input', filterRooms);
-
-    filterButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            filterButtons.forEach(b => {
-                b.classList.remove('btn-dark', 'active');
-                b.classList.add('btn-outline-secondary');
-            });
-            btn.classList.remove('btn-outline-secondary');
-            btn.classList.add('btn-dark', 'active');
-            activeFilter = btn.getAttribute('data-filter');
-            filterRooms();
-        });
-    });
-
-    // Populate View Details Modal
-    document.querySelectorAll('.view-details-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const id = btn.getAttribute('data-id');
-            const name = btn.getAttribute('data-name');
-            const floor = btn.getAttribute('data-floor');
-            const capacity = btn.getAttribute('data-capacity');
-            const status = btn.getAttribute('data-status');
-            const facilities = btn.getAttribute('data-facilities');
-            const notes = btn.getAttribute('data-notes');
-
-            document.getElementById('modalRoomId').textContent = id;
-            document.getElementById('modalRoomName').textContent = name;
-            document.getElementById('modalRoomSubtitle').textContent = `${id} • ${floor}`;
-            document.getElementById('modalRoomCapacity').textContent = `${floor} (${capacity})`;
-            document.getElementById('modalRoomFacilities').textContent = facilities;
-            document.getElementById('modalRoomNotes').textContent = notes;
-            document.getElementById('modalUpdateBtn').href = `update_room_status.html?roomId=${id}`;
-
-            const statusBadge = document.getElementById('modalRoomStatus');
-            statusBadge.textContent = status;
-            statusBadge.className = 'badge rounded-pill px-2 py-1 mt-1 ';
-            if (status === 'Available') statusBadge.classList.add('badge-available');
-            else if (status === 'Booked') statusBadge.classList.add('badge-confirmed');
-            else statusBadge.classList.add('badge-maintenance');
-        });
-    });
-</script>
 
 </body>
 </html>

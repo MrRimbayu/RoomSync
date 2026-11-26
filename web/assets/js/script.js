@@ -7,7 +7,7 @@
 // RoomSync Global Scripts (Shared Across Pages)
 // =========================================
 
-// Default test student users when no backend database is used [Ref: login.html, register.html]
+// Default test student & librarian users when no backend database is used [Ref: login.html, register.html]
 const DEFAULT_ROOMSYNC_USERS = [
     {
         user_id: "2026119161",
@@ -20,107 +20,148 @@ const DEFAULT_ROOMSYNC_USERS = [
         user_id: "S12345",
         full_name: "Ahmad Daniel",
         email: "S12345@staff.uitm.edu.my",
-        password: "123456",
+        password: "lib123",
         role: "Librarian"
     }
 ];
 
-// [Ref: register.html] Setup student registration validation, duplicate check & localStorage save
+//[Ref: register.html] Setup register page form validation and save new user to localStorage
 function setupRegisterPage() {
     const registerForm = document.getElementById("registerForm");
     if (!registerForm) return;
 
+    // Run this code when the user clicks the Create Account button
     registerForm.addEventListener("submit", function (e) {
-        e.preventDefault();
+        e.preventDefault(); // Stop the page from refreshing automatically
 
-        const userIdRaw = document.getElementById("userId").value.trim();
-        const userId = parseInt(userIdRaw, 10);
+        // Get all input values from the registration form
+        const userId = document.getElementById("userId").value.trim();
         const fullName = document.getElementById("fullName").value.trim();
         const email = document.getElementById("email").value.trim().toLowerCase();
+        
+        const facultyEl = document.getElementById("faculty");
+        let faculty = "";
+        if (facultyEl) {
+            faculty = facultyEl.value.trim();
+        }
+
         const roleEl = document.getElementById("role");
-        const role = roleEl && roleEl.value ? roleEl.value.trim() : "Student";
+        let role = "Student";
+        if (roleEl && roleEl.value) {
+            role = roleEl.value.trim();
+        }
+
         const password = document.getElementById("password").value;
         const confirmPassword = document.getElementById("confirmPassword").value;
 
+        // Get error and success alert boxes
         const errorAlert = document.getElementById("errorAlert");
         const errorText = document.getElementById("errorText");
         const successAlert = document.getElementById("successAlert");
         const successText = document.getElementById("successText");
 
-        // [Ref: register.html] Hide previous alert messages
+        // Hide old alert messages before checking again
         if (errorAlert) errorAlert.classList.add("d-none");
         if (successAlert) successAlert.classList.add("d-none");
 
-        // [Ref: register.html] Validate password confirmation match
+        // Check if password and confirm password match
         if (password !== confirmPassword) {
             if (errorText) errorText.textContent = "Passwords do not match.";
             if (errorAlert) errorAlert.classList.remove("d-none");
             return;
         }
 
-        // [Ref: register.html] Retrieve existing registered users and merge with default accounts
+        // Load existing registered users and combine with default test accounts
         const registeredUsers = JSON.parse(localStorage.getItem("roomSyncUsers") || "[]");
         const allUsers = [...DEFAULT_ROOMSYNC_USERS, ...registeredUsers];
 
-        // [Ref: register.html] Prevent duplicate Student ID or Email
-        const isDuplicateId = allUsers.some((u) => parseInt(u.user_id, 10) === userId);
-        const isDuplicateEmail = allUsers.some((u) => String(u.email).toLowerCase() === email);
+        // Check if the ID or Email is already taken
+        const isDuplicateId = allUsers.some(
+            (u) => String(u.user_id).trim().toLowerCase() === userId.toLowerCase()
+        );
+        const isDuplicateEmail = allUsers.some(
+            (u) => String(u.email).trim().toLowerCase() === email
+        );
 
+        // Show error message if ID already exists
         if (isDuplicateId) {
-            if (errorText) errorText.textContent = "Student ID is already registered. Please use a different ID.";
+            if (errorText) errorText.textContent = "Student / Staff ID is already registered.";
             if (errorAlert) errorAlert.classList.remove("d-none");
             return;
         }
 
+        // Show error message if Email already exists
         if (isDuplicateEmail) {
             if (errorText) errorText.textContent = "Email address is already registered.";
             if (errorAlert) errorAlert.classList.remove("d-none");
             return;
         }
 
-        // [Ref: register.html -> login.html] Save new student account into localStorage
+        // Create a new user object with the form details
         const newUser = {
-            user_id: String(userId),
+            user_id: userId,
             full_name: fullName,
             email: email,
+            faculty: faculty,
             password: password,
             role: role
         };
 
+        // Add new user to the list and save it into localStorage
         registeredUsers.push(newUser);
         localStorage.setItem("roomSyncUsers", JSON.stringify(registeredUsers));
 
+        // Show green success message and clear the form
         if (successText) {
             successText.textContent = "Registration successful! Redirecting to login page...";
         }
         if (successAlert) successAlert.classList.remove("d-none");
         registerForm.reset();
-        if (roleEl) roleEl.value = "Student";
 
+        // Wait 1.5 seconds, then go to the login page
         setTimeout(() => {
             window.location.href = "login.html";
         }, 1500);
     });
 }
 
-// [Ref: login.html] Setup login page session redirect and student form authentication
+// [Ref: login.html] Update form action based on selected role dropdown
+function updateLoginDestination() {
+    const loginForm = document.getElementById("loginForm");
+    const userRoleEl = document.getElementById("userRole");
+    if (!loginForm || !userRoleEl) return;
+
+    if (userRoleEl.value === "librarian") {
+        loginForm.action = "librarian/librarian_dashboard.html";
+    } else {
+        loginForm.action = "student/student_dashboard.html";
+    }
+}
+
+// [Ref: login.html] Setup login page session redirect and role-based authentication
 function setupLoginPage() {
     const loginForm = document.getElementById("loginForm");
     if (!loginForm) return;
 
-    loginForm.action = "student/student_dashboard.html";
+    const userRoleEl = document.getElementById("userRole");
+    updateLoginDestination();
 
-    // [Ref: login.html] Redirect immediately if an active student session already exists
+    // [Ref: login.html] Redirect immediately if an active session already exists
     const activeUser = JSON.parse(sessionStorage.getItem("roomSyncCurrentUser") || "null");
     if (activeUser && activeUser.user_id) {
-        window.location.href = "student/student_dashboard.html";
+        if (String(activeUser.role).toLowerCase() === "librarian") {
+            window.location.href = "librarian/librarian_dashboard.html";
+        } else {
+            window.location.href = "student/student_dashboard.html";
+        }
         return;
     }
 
-    // [Ref: login.html] Validate Student ID and password against default & registered localStorage users
+    // [Ref: login.html] Validate ID, password, and role against default & registered users
     loginForm.addEventListener("submit", function (e) {
         e.preventDefault();
 
+        const selectedRole = userRoleEl ? userRoleEl.value.toLowerCase() : "student";
         const userIdInput = document.getElementById("userId").value.trim();
         const password = document.getElementById("password").value;
         const errorAlert = document.getElementById("errorAlert");
@@ -129,27 +170,36 @@ function setupLoginPage() {
         const registeredUsers = JSON.parse(localStorage.getItem("roomSyncUsers") || "[]");
         const allUsers = [...DEFAULT_ROOMSYNC_USERS, ...registeredUsers];
 
-        const foundUser = allUsers.find(
-            (u) => String(u.user_id).trim() === userIdInput && u.password === password
-        );
+        const foundUser = allUsers.find((u) => {
+            const matchId = String(u.user_id).trim().toLowerCase() === userIdInput.toLowerCase();
+            const matchPass = u.password === password;
+            const matchRole = String(u.role).toLowerCase() === selectedRole;
+            return matchId && matchPass && matchRole;
+        });
 
         if (!foundUser) {
-            if (errorText) errorText.textContent = "Invalid Student ID or password.";
+            if (errorText) {
+                errorText.textContent = "Invalid ID, password, or selected role.";
+            }
             if (errorAlert) errorAlert.classList.remove("d-none");
             return;
         }
 
         if (errorAlert) errorAlert.classList.add("d-none");
 
-        // [Ref: login.html -> booking_form.html] Save active student session into sessionStorage
+        // [Ref: login.html] Save active user session into sessionStorage
         sessionStorage.setItem("roomSyncCurrentUser", JSON.stringify({
             user_id: foundUser.user_id,
             full_name: foundUser.full_name,
             email: foundUser.email,
-            role: "Student"
+            role: foundUser.role
         }));
 
-        window.location.href = "student/student_dashboard.html";
+        if (selectedRole === "librarian") {
+            window.location.href = "librarian/librarian_dashboard.html";
+        } else {
+            window.location.href = "student/student_dashboard.html";
+        }
     });
 }
 
@@ -370,7 +420,8 @@ function setupBookingFormUI() {
             )
         );
     }
-    if (!roomSelect) return;
+    // Exit early if not on booking_form.html (e.g., update_room_status.html also has #roomSelect)
+    if (!roomSelect || document.getElementById("updateStatusForm")) return;
 
     // [Ref: booking_form.html] Populate student name, ID, and topbar role badge from sessionStorage
     const currentUser = JSON.parse(sessionStorage.getItem("roomSyncCurrentUser") || "null");
@@ -608,7 +659,8 @@ function setupBookingForm() {
 // [Ref: my_bookings.html] 4. Load booking history rows dynamically into #bookingTableBody
 function loadMyBookings() {
     const tableBody = document.getElementById("bookingTableBody");
-    if (!tableBody) return;
+    // Ensure this runs only on my_bookings.html (not daily_schedule.html which also uses #bookingTableBody)
+    if (!tableBody || document.getElementById("timelineBody")) return;
 
     // [Ref: my_bookings.html] Default sample bookings seeded once into localStorage if not initialized yet
     const defaultBookings = [
@@ -753,169 +805,896 @@ function deleteBooking(savedIndex) {
     }
 }
 
-// [Ref: room_details.html] 8. Load dynamic room details based on URL parameter (?room_id=...)
-function loadRoomDetailsPage() {
-    const roomNameEl = document.getElementById("roomNameText");
-    if (!roomNameEl) return;
+// [Ref: booking_analytics.html] 8. Setup charts and interactive room filter for Booking Analytics page
+function setupBookingAnalyticsPage() {
+    const bookingsByRoomEl = document.getElementById("bookingsByRoomChart");
+    const utilizationEl = document.getElementById("utilizationDoughnutChart");
+    const peakHoursEl = document.getElementById("peakHoursChart");
 
-    const roomsCatalog = {
-        "1": {
-            room_id: 1,
-            room_name: "Discussion Room A",
-            capacity: 6,
-            room_status: "Available",
-            facilities: '43" Smart TV, HDMI Cable, Whiteboard, High-Speed Wi-Fi, 4 Power Outlets',
-            icon: "bi-door-open-fill"
+    // Exit early if not on booking_analytics.html
+    if (!bookingsByRoomEl || !utilizationEl || !peakHoursEl) return;
+
+    // [Ref: booking_analytics.html] Total Bookings by Room (Horizontal Bar Chart)
+    const bookingsByRoomCtx = bookingsByRoomEl.getContext("2d");
+    new Chart(bookingsByRoomCtx, {
+        type: "bar",
+        data: {
+            labels: [
+                "RM-101 (Discussion A1)",
+                "RM-102 (Discussion A2)",
+                "RM-301 (Seminar Pod C1)",
+                "RM-202 (Media Room B2)",
+                "RM-302 (Seminar Pod C2)",
+                "RM-201 (Media Room B1)",
+                "RM-401 (Quiet Study D1)",
+                "RM-402 (Quiet Study D2)"
+            ],
+            datasets: [{
+                label: "Total Bookings",
+                data: [198, 184, 172, 165, 154, 142, 138, 131],
+                backgroundColor: "#2563eb",
+                hoverBackgroundColor: "#1d4ed8",
+                borderRadius: 6,
+                barThickness: 18
+            }]
         },
-        "2": {
-            room_id: 2,
-            room_name: "Presentation Lab 1",
-            capacity: 12,
-            room_status: "Available",
-            facilities: "HD Projector, Podium, Microphone, Acoustic Walls, Wi-Fi",
-            icon: "bi-easel-fill"
+        options: {
+            indexAxis: "y",
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    grid: { color: "#f1f5f9" }
+                },
+                y: {
+                    grid: { display: false }
+                }
+            }
+        }
+    });
+
+    // [Ref: booking_analytics.html] Room Utilization Percentage (Doughnut Chart)
+    const utilizationCtx = utilizationEl.getContext("2d");
+    new Chart(utilizationCtx, {
+        type: "doughnut",
+        data: {
+            labels: ["Utilized (76.4%)", "Available / Idle (23.6%)"],
+            datasets: [{
+                data: [76.4, 23.6],
+                backgroundColor: ["#2563eb", "#e2e8f0"],
+                borderWidth: 0,
+                hoverOffset: 4
+            }]
         },
-        "3": {
-            room_id: 3,
-            room_name: "Group Study Pod 1",
-            capacity: 4,
-            room_status: "Available",
-            facilities: "Glass Whiteboard, High-Speed Wi-Fi, 2 Power Outlets",
-            icon: "bi-door-open-fill"
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: "72%",
+            plugins: {
+                legend: {
+                    position: "bottom",
+                    labels: { boxWidth: 12, font: { size: 12 } }
+                }
+            }
+        }
+    });
+
+    // [Ref: booking_analytics.html] Peak Booking Hours (Bar Chart highlighting peak hours in orange)
+    const peakHoursCtx = peakHoursEl.getContext("2d");
+    const peakHoursChart = new Chart(peakHoursCtx, {
+        type: "bar",
+        data: {
+            labels: ["8 AM", "9 AM", "10 AM", "11 AM", "12 PM", "1 PM", "2 PM", "3 PM", "4 PM", "5 PM", "6 PM", "7 PM", "8 PM"],
+            datasets: [{
+                label: "Avg. Bookings / Hour",
+                data: [12, 22, 34, 41, 45, 48, 62, 68, 64, 52, 36, 28, 19],
+                backgroundColor: [
+                    "#93c5fd", "#93c5fd", "#60a5fa", "#60a5fa", "#3b82f6", "#3b82f6",
+                    "#f97316", "#f97316", "#f97316", "#3b82f6", "#60a5fa", "#93c5fd", "#93c5fd"
+                ],
+                borderRadius: 5
+            }]
         },
-        "4": {
-            room_id: 4,
-            room_name: "Discussion Room B",
-            capacity: 8,
-            room_status: "Occupied",
-            facilities: "Whiteboard, HDMI Monitor, Wi-Fi, 4 Power Outlets",
-            icon: "bi-door-closed-fill"
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: "#f1f5f9" }
+                },
+                x: {
+                    grid: { display: false }
+                }
+            }
+        }
+    });
+
+    // [Ref: booking_analytics.html] Interactive Filter Simulation
+    const applyFilterBtn = document.getElementById("applyFilterBtn");
+    if (applyFilterBtn) {
+        applyFilterBtn.addEventListener("click", () => {
+            const roomType = document.getElementById("roomFilter").value;
+            const kpiReservations = document.getElementById("kpiReservations");
+            const kpiUtilization = document.getElementById("kpiUtilization");
+            const kpiTopRoom = document.getElementById("kpiTopRoom");
+
+            const presets = {
+                all: { res: "1,284", util: "76.4%", top: "RM-101", hours: [12, 22, 34, 41, 45, 48, 62, 68, 64, 52, 36, 28, 19] },
+                discussion: { res: "482", util: "86.0%", top: "RM-101", hours: [6, 10, 15, 18, 20, 21, 26, 28, 25, 20, 14, 11, 8] },
+                media: { res: "307", util: "72.0%", top: "RM-202", hours: [2, 4, 7, 9, 10, 11, 15, 16, 15, 12, 8, 6, 4] },
+                seminar: { res: "326", util: "78.0%", top: "RM-301", hours: [3, 5, 8, 9, 10, 11, 14, 16, 16, 13, 9, 7, 4] },
+                quiet: { res: "169", util: "65.0%", top: "RM-401", hours: [1, 3, 4, 5, 5, 5, 7, 8, 8, 7, 5, 4, 3] }
+            };
+
+            const selected = presets[roomType];
+            if (selected) {
+                kpiReservations.textContent = selected.res;
+                kpiUtilization.textContent = selected.util;
+                kpiTopRoom.textContent = selected.top;
+
+                peakHoursChart.data.datasets[0].data = selected.hours;
+                peakHoursChart.update();
+            }
+        });
+    }
+}
+
+// [Ref: daily_schedule.html] 9. Setup hourly room timeline grid, date filter & details modal for Daily Booking Schedule page
+function setupDailySchedulePage() {
+    const timelineBody = document.getElementById("timelineBody");
+    const bookingTableBody = document.getElementById("bookingTableBody");
+    const scheduleDateInput = document.getElementById("scheduleDateInput");
+
+    // Exit early if not on daily_schedule.html
+    if (!timelineBody || !bookingTableBody || !scheduleDateInput) return;
+
+    // [Ref: daily_schedule.html] Library rooms list
+    const roomsList = [
+        { id: "RM-101", name: "Discussion Room A1", floor: "1st Floor", maintenance: false },
+        { id: "RM-102", name: "Discussion Room A2", floor: "1st Floor", maintenance: false },
+        { id: "RM-201", name: "Media Room B1", floor: "2nd Floor", maintenance: true },
+        { id: "RM-202", name: "Media Room B2", floor: "2nd Floor", maintenance: false },
+        { id: "RM-301", name: "Seminar Pod C1", floor: "3rd Floor", maintenance: false },
+        { id: "RM-302", name: "Seminar Pod C2", floor: "3rd Floor", maintenance: false },
+        { id: "RM-401", name: "Quiet Study Room D1", floor: "4th Floor", maintenance: false },
+        { id: "RM-402", name: "Quiet Study Room D2", floor: "4th Floor", maintenance: true }
+    ];
+
+    // [Ref: daily_schedule.html] Time slots (8:00 AM - 6:00 PM)
+    const hours = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
+
+    // [Ref: daily_schedule.html] Sample bookings data by date
+    const bookingsData = [
+        {
+            bookingId: "BK-2026-101",
+            studentName: "Ahmad Daniel Bin Roslan",
+            studentId: "2024881920",
+            roomId: "RM-101",
+            roomName: "RM-101 - Discussion Room A1",
+            date: "2026-11-22",
+            startHour: 9,
+            endHour: 11,
+            startTime: "09:00 AM",
+            endTime: "11:00 AM",
+            status: "Completed",
+            purpose: "Software Engineering Group Discussion (5 students)"
         },
-        "5": {
-            room_id: 5,
-            room_name: "Computer & Multimedia Room",
-            capacity: 20,
-            room_status: "Maintenance",
-            facilities: "Smart Board, Video Conferencing Camera, Wi-Fi",
-            icon: "bi-tools"
+        {
+            bookingId: "BK-2026-102",
+            studentName: "Nurul Aina Binti Zulkifli",
+            studentId: "2024654321",
+            roomId: "RM-101",
+            roomName: "RM-101 - Discussion Room A1",
+            date: "2026-11-22",
+            startHour: 14,
+            endHour: 16,
+            startTime: "02:00 PM",
+            endTime: "04:00 PM",
+            status: "Completed",
+            purpose: "Final Year Project Presentation Rehearsal"
+        },
+        {
+            bookingId: "BK-2026-103",
+            studentName: "Tan Wei Ming",
+            studentId: "2024112233",
+            roomId: "RM-102",
+            roomName: "RM-102 - Discussion Room A2",
+            date: "2026-11-22",
+            startHour: 10,
+            endHour: 12,
+            startTime: "10:00 AM",
+            endTime: "12:00 PM",
+            status: "Completed",
+            purpose: "Database System Assignment Review"
+        },
+        {
+            bookingId: "BK-2026-104",
+            studentName: "Siti Sarah Binti Hamid",
+            studentId: "2024778899",
+            roomId: "RM-202",
+            roomName: "RM-202 - Media Room B2",
+            date: "2026-11-22",
+            startHour: 13,
+            endHour: 15,
+            startTime: "01:00 PM",
+            endTime: "03:00 PM",
+            status: "Cancelled",
+            purpose: "Multimedia Video Editing & Audio Recording"
+        },
+        {
+            bookingId: "BK-2026-105",
+            studentName: "Kavita A/P Subramaniam",
+            studentId: "2024334455",
+            roomId: "RM-301",
+            roomName: "RM-301 - Seminar Pod C1",
+            date: "2026-11-22",
+            startHour: 15,
+            endHour: 18,
+            startTime: "03:00 PM",
+            endTime: "06:00 PM",
+            status: "Completed",
+            purpose: "Debate Club Mock Session"
+        },
+        {
+            bookingId: "BK-2026-106",
+            studentName: "Muhammad Hafiz Bin Omar",
+            studentId: "2024990011",
+            roomId: "RM-401",
+            roomName: "RM-401 - Quiet Study Room D1",
+            date: "2026-11-22",
+            startHour: 11,
+            endHour: 13,
+            startTime: "11:00 AM",
+            endTime: "01:00 PM",
+            status: "Completed",
+            purpose: "Midterm Exam Revision"
+        },
+        {
+            bookingId: "BK-2026-107",
+            studentName: "Aisyah Humaira Binti Yusof",
+            studentId: "2024556677",
+            roomId: "RM-101",
+            roomName: "RM-101 - Discussion Room A1",
+            date: "2026-11-20",
+            startHour: 10,
+            endHour: 12,
+            startTime: "10:00 AM",
+            endTime: "12:00 PM",
+            status: "Completed",
+            purpose: "Business Proposal Brainstorming"
+        },
+        {
+            bookingId: "BK-2026-108",
+            studentName: "Lim Jia Hao",
+            studentId: "2024443322",
+            roomId: "RM-302",
+            roomName: "RM-302 - Seminar Pod C2",
+            date: "2026-11-20",
+            startHour: 14,
+            endHour: 17,
+            startTime: "02:00 PM",
+            endTime: "05:00 PM",
+            status: "Completed",
+            purpose: "Hackathon Pitch Preparation"
+        },
+        {
+            bookingId: "BK-2026-109",
+            studentName: "Ahmad Daniel bin Sulaiman",
+            studentId: "2026128701",
+            roomId: "RM-302",
+            roomName: "RM-302 - Seminar Pod C2",
+            date: "2026-11-24",
+            startHour: 9,
+            endHour: 17,
+            startTime: "09:00 AM",
+            endTime: "05:00 PM",
+            status: "Cancelled",
+            purpose: "Study Group For Final Exam Preparation"
+        },
+        {
+            bookingId: "BK-2026-110",
+            studentName: "Muhd Azizi bin Wali Ullah",
+            studentId: "2023613046",
+            roomId: "RM-102",
+            roomName: "RM-102 - Discussion Room A2",
+            date: "2026-11-24",
+            startHour: 12,
+            endHour: 17,
+            startTime: "12:00 PM",
+            endTime: "05:00 PM",
+            status: "Booked",
+            purpose: "Study Group"
+        },
+        {
+            bookingId: "BK-2026-111",
+            studentName: "Nik Muhd Fakhrul Ikhwan bin Mohd Nur Helmi",
+            studentId: "2028124652",
+            roomId: "RM-401",
+            roomName: "RM-401 - Quiet Study Room D2",
+            date: "2026-11-24",
+            startHour: 12,
+            endHour: 18,
+            startTime: "12:00 PM",
+            endTime: "05:00 PM",
+            status: "Booked",
+            purpose: "Birthday Party"
+        },
+        {
+            bookingId: "BK-2026-112",
+            studentName: "Abdulla bin Mukhzar",
+            studentId: "2028956210",
+            roomId: "RM-202",
+            roomName: "RM-202 - Media Room B2",
+            date: "2026-11-24",
+            startHour: 8,
+            endHour: 12,
+            startTime: "08:00 AM",
+            endTime: "12:00 PM",
+            status: "Completed",
+            purpose: "MPP Meeting"
+        },
+        {
+            bookingId: "BK-2026-113",
+            studentName: "Hadira Amalina bin Salleh",
+            studentId: "2026102330",
+            roomId: "RM-401",
+            roomName: "RM-401 - Quiet Study Room D1",
+            date: "2026-11-24",
+            startHour: 9,
+            endHour: 11,
+            startTime: "09:00 AM",
+            endTime: "11:00 AM",
+            status: "Completed",
+            purpose: "Relief Class"
+        }
+    ];
+
+    const formattedDateLabel = document.getElementById("formattedDateLabel");
+    const totalBookingsCount = document.getElementById("totalBookingsCount");
+    const timelineRoomSearch = document.getElementById("timelineRoomSearch");
+    const modalEl = document.getElementById("bookingDetailsModal");
+    const detailsModal = modalEl ? new bootstrap.Modal(modalEl) : null;
+
+    // [Ref: daily_schedule.html] Get local today's date in YYYY-MM-DD format
+    function getLocalToday() {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, "0");
+        const day = String(today.getDate()).padStart(2, "0");
+
+        return `${year}-${month}-${day}`;
+    }
+
+    // [Ref: daily_schedule.html] Set today's date automatically on page load
+    scheduleDateInput.value = getLocalToday();
+
+    function formatDisplayDate(dateStr) {
+        const dateObj = new Date(dateStr + "T00:00:00");
+        return dateObj.toLocaleDateString("en-US", {
+            weekday: "long",
+            year: "numeric",
+            month: "short",
+            day: "numeric"
+        });
+    }
+
+    function openBookingModal(booking) {
+        if (!detailsModal) return;
+
+        const modalContent = document.querySelector("#bookingDetailsModal .modal-content");
+        modalContent.classList.remove("theme-booked", "theme-completed", "theme-cancelled");
+        modalContent.classList.add(`theme-${booking.status.toLowerCase()}`);
+
+        document.getElementById("modalBookingId").textContent = booking.bookingId;
+        document.getElementById("modalBookingSubtitle").textContent = `${booking.roomName} • ${booking.date}`;
+        document.getElementById("modalStudentName").textContent = booking.studentName;
+        document.getElementById("modalStudentId").textContent = booking.studentId;
+        document.getElementById("modalRoomName").textContent = booking.roomName;
+        document.getElementById("modalBookingDate").textContent = booking.date;
+        document.getElementById("modalTimeSlot").textContent = `${booking.startTime} – ${booking.endTime}`;
+        document.getElementById("modalPurpose").textContent = booking.purpose;
+
+        const statusBadge = document.getElementById("modalBookingStatus");
+        statusBadge.textContent = booking.status;
+        statusBadge.className = "badge rounded-pill booking-status px-3 py-2 ";
+        if (booking.status === "Booked") {
+            statusBadge.classList.add("bg-primary");
+        } else if (booking.status === "Completed") {
+            statusBadge.classList.add("bg-success");
+        } else if (booking.status === "Cancelled") {
+            statusBadge.classList.add("bg-danger");
+        }
+
+        detailsModal.show();
+    }
+
+    function renderSchedule() {
+        const selectedDate = scheduleDateInput.value;
+        const searchKeyword = timelineRoomSearch ? timelineRoomSearch.value.toLowerCase().trim() : "";
+        if (formattedDateLabel) {
+            formattedDateLabel.textContent = formatDisplayDate(selectedDate);
+        }
+
+        const dayBookings = bookingsData.filter((b) => b.date === selectedDate);
+
+        // [Ref: daily_schedule.html] 1. Build Timeline Grid
+        timelineBody.innerHTML = "";
+        roomsList
+            .filter((r) => r.id.toLowerCase().includes(searchKeyword) || r.name.toLowerCase().includes(searchKeyword))
+            .forEach((room) => {
+                const tr = document.createElement("tr");
+
+                // Room name column
+                const roomTd = document.createElement("td");
+                roomTd.className = "room-cell";
+                roomTd.innerHTML = `
+                    <div class="fw-bold small text-dark">${room.id} — ${room.name}</div>
+                    <div class="text-muted" style="font-size: 0.72rem;">${room.floor}</div>
+                `;
+                tr.appendChild(roomTd);
+
+                // Time slot columns (08:00 AM - 06:00 PM)
+                hours.forEach((hour) => {
+                    const slotTd = document.createElement("td");
+                    slotTd.className = "slot-cell";
+
+                    if (room.maintenance) {
+                        slotTd.innerHTML = `<div class="slot-block slot-unavailable" title="Under Maintenance">Maint.</div>`;
+                    } else {
+                        const matchedBooking = dayBookings.find(
+                            (b) => b.roomId === room.id && hour >= b.startHour && hour < b.endHour
+                        );
+
+                        if (matchedBooking) {
+                            const statusClass = `slot-${matchedBooking.status.toLowerCase()}`;
+                            const block = document.createElement("div");
+                            block.className = `slot-block ${statusClass}`;
+                            block.textContent = matchedBooking.bookingId.split("-").pop();
+                            block.title = `${matchedBooking.bookingId}: ${matchedBooking.studentName} (${matchedBooking.status})`;
+                            block.addEventListener("click", () => openBookingModal(matchedBooking));
+                            slotTd.appendChild(block);
+                        } else {
+                            slotTd.innerHTML = `<div class="slot-block slot-available">Free</div>`;
+                        }
+                    }
+
+                    tr.appendChild(slotTd);
+                });
+
+                timelineBody.appendChild(tr);
+            });
+
+        // [Ref: daily_schedule.html] 2. Build Scheduled Bookings List Table
+        bookingTableBody.innerHTML = "";
+        if (totalBookingsCount) {
+            let countLabel = "Bookings Found";
+            if (dayBookings.length === 1) {
+                countLabel = "Booking Found";
+            }
+            totalBookingsCount.textContent = `${dayBookings.length} ${countLabel}`;
+        }
+
+        if (dayBookings.length === 0) {
+            bookingTableBody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">
+                        <i class="bi bi-calendar-x fs-4 d-block mb-1"></i>
+                        No room bookings scheduled for this date.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        dayBookings.forEach((booking) => {
+            let badgeClass = "bg-primary";
+            if (booking.status === "Completed") badgeClass = "bg-success";
+            if (booking.status === "Cancelled") badgeClass = "bg-danger";
+
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td class="fw-bold text-primary">${booking.bookingId}</td>
+                <td class="fw-medium">${booking.studentName}</td>
+                <td>${booking.roomName}</td>
+                <td>${booking.date}</td>
+                <td>${booking.startTime} – ${booking.endTime}</td>
+                <td><span class="badge ${badgeClass} rounded-pill px-2 py-1">${booking.status}</span></td>
+                <td class="text-end">
+                    <button type="button" class="btn btn-outline-primary btn-sm view-detail-btn">
+                        <i class="bi bi-eye me-1"></i> View
+                    </button>
+                </td>
+            `;
+
+            row.querySelector(".view-detail-btn").addEventListener("click", () => openBookingModal(booking));
+            bookingTableBody.appendChild(row);
+        });
+    }
+
+    // [Ref: daily_schedule.html] Event listeners for date controls and room search
+    const todayBtn = document.getElementById("todayBtn");
+    if (todayBtn) {
+        todayBtn.addEventListener("click", () => {
+            scheduleDateInput.value = getLocalToday();
+            renderSchedule();
+        });
+    }
+
+    const prevDateBtn = document.getElementById("prevDateBtn");
+    if (prevDateBtn) {
+        prevDateBtn.addEventListener("click", () => {
+            const current = new Date(scheduleDateInput.value + "T00:00:00");
+            current.setDate(current.getDate() - 1);
+            scheduleDateInput.value = current.toISOString().split("T")[0];
+            renderSchedule();
+        });
+    }
+
+    const nextDateBtn = document.getElementById("nextDateBtn");
+    if (nextDateBtn) {
+        nextDateBtn.addEventListener("click", () => {
+            const current = new Date(scheduleDateInput.value + "T00:00:00");
+            current.setDate(current.getDate() + 1);
+            scheduleDateInput.value = current.toISOString().split("T")[0];
+            renderSchedule();
+        });
+    }
+
+    const filterDateBtn = document.getElementById("filterDateBtn");
+    if (filterDateBtn) {
+        filterDateBtn.addEventListener("click", renderSchedule);
+    }
+
+    scheduleDateInput.addEventListener("change", renderSchedule);
+
+    if (timelineRoomSearch) {
+        timelineRoomSearch.addEventListener("input", renderSchedule);
+    }
+
+    // [Ref: daily_schedule.html] Initial render on page load
+    renderSchedule();
+}
+
+// [Ref: librarian_dashboard.html] 10. Setup Booking Statistics bar chart for Librarian Dashboard
+function setupLibrarianDashboardPage() {
+    const chartEl = document.getElementById("bookingStatsChart");
+    if (!chartEl) return;
+
+    const ctx = chartEl.getContext("2d");
+    new Chart(ctx, {
+        type: "bar",
+        data: {
+            labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+            datasets: [{
+                label: "Bookings",
+                data: [24, 42, 46, 41, 31, 14, 21],
+                backgroundColor: "#2563eb",
+                hoverBackgroundColor: "#1d4ed8",
+                borderRadius: 6,
+                barThickness: 28
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: "#f1f5f9" }
+                },
+                x: {
+                    grid: { display: false }
+                }
+            }
+        }
+    });
+}
+
+// [Ref: manage_rooms.html] 11. Setup room search, status filter & View Details modal for Manage Rooms page
+function setupManageRoomsPage() {
+    const searchInput = document.getElementById("roomSearchInput");
+    const filterButtons = document.querySelectorAll(".filter-btn");
+    const roomItems = document.querySelectorAll(".room-item");
+
+    // Exit early if not on manage_rooms.html
+    if (!searchInput || roomItems.length === 0) return;
+
+    let activeFilter = "all";
+
+    // [Ref: manage_rooms.html] Filter & search rooms by status and keyword
+    function filterRooms() {
+        const keyword = searchInput.value.toLowerCase().trim();
+        roomItems.forEach((item) => {
+            const status = item.getAttribute("data-status");
+            const text = item.getAttribute("data-search").toLowerCase();
+            const matchStatus = activeFilter === "all" || status === activeFilter;
+            const matchSearch = text.includes(keyword);
+
+            if (matchStatus && matchSearch) {
+                item.style.display = "";
+            } else {
+                item.style.display = "none";
+            }
+        });
+    }
+
+    searchInput.addEventListener("input", filterRooms);
+
+    filterButtons.forEach((btn) => {
+        btn.addEventListener("click", () => {
+            filterButtons.forEach((b) => {
+                b.classList.remove("btn-dark", "active");
+                b.classList.add("btn-outline-secondary");
+            });
+            btn.classList.remove("btn-outline-secondary");
+            btn.classList.add("btn-dark", "active");
+            activeFilter = btn.getAttribute("data-filter");
+            filterRooms();
+        });
+    });
+
+    // [Ref: manage_rooms.html] Populate View Details Modal
+    document.querySelectorAll(".view-details-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+            const id = btn.getAttribute("data-id");
+            const name = btn.getAttribute("data-name");
+            const floor = btn.getAttribute("data-floor");
+            const capacity = btn.getAttribute("data-capacity");
+            const status = btn.getAttribute("data-status");
+            const facilities = btn.getAttribute("data-facilities");
+            const notes = btn.getAttribute("data-notes");
+
+            document.getElementById("modalRoomId").textContent = id;
+            document.getElementById("modalRoomName").textContent = name;
+            document.getElementById("modalRoomSubtitle").textContent = `${id} • ${floor}`;
+            document.getElementById("modalRoomCapacity").textContent = `${floor} (${capacity})`;
+            document.getElementById("modalRoomFacilities").textContent = facilities;
+            document.getElementById("modalRoomNotes").textContent = notes;
+            document.getElementById("modalUpdateBtn").href = `update_room_status.html?room=${id}`;
+
+            const statusBadge = document.getElementById("modalRoomStatus");
+            statusBadge.textContent = status;
+            statusBadge.className = "badge rounded-pill px-2 py-1 mt-1 ";
+            if (status === "Available") {
+                statusBadge.classList.add("badge-available");
+            } else if (status === "Booked") {
+                statusBadge.classList.add("badge-confirmed");
+            } else {
+                statusBadge.classList.add("badge-maintenance");
+            }
+        });
+    });
+}
+
+// [Ref: update_room_status.html] 12. Setup dynamic room preview, status badge & form submission for Update Room Status page
+function setupUpdateRoomStatusPage() {
+    const roomSelect = document.getElementById("roomSelect");
+    const updateStatusForm = document.getElementById("updateStatusForm");
+
+    // Exit early if not on update_room_status.html
+    if (!roomSelect || !updateStatusForm) return;
+
+    // [Ref: update_room_status.html] Sample Room Data for Dynamic Preview
+    const roomsData = {
+        "RM-101": {
+            name: "Discussion Room A1",
+            floor: "Floor 1",
+            capacity: "6 Pax",
+            bookings: "4 Active Sessions",
+            status: "Available",
+            note: "All equipment functioning normally. Ready for student reservations.",
+            facilities: ["Whiteboard", "55\" Smart TV", "High-Speed Wi-Fi", "4 Power Outlets"]
+        },
+        "RM-102": {
+            name: "Discussion Room A2",
+            floor: "Floor 1",
+            capacity: "8 Pax",
+            bookings: "5 Active Sessions",
+            status: "Available",
+            note: "Markers and whiteboard eraser replenished.",
+            facilities: ["Glass Whiteboard", "HDMI Display", "Wi-Fi", "6 Power Outlets"]
+        },
+        "RM-201": {
+            name: "Media Room B1",
+            floor: "Floor 2",
+            capacity: "10 Pax",
+            bookings: "3 Active Sessions",
+            status: "Available",
+            note: "Audio-visual surround system tested and ready.",
+            facilities: ["HD Projector", "Surround Audio", "Video Conferencing", "Wi-Fi"]
+        },
+        "RM-202": {
+            name: "Media Room B2",
+            floor: "Floor 2",
+            capacity: "10 Pax",
+            bookings: "0 Active Sessions",
+            status: "Maintenance",
+            note: "Projector bulb replacement in progress until 5:00 PM.",
+            facilities: ["HD Projector", "Smart Podium", "Wi-Fi", "Air-Conditioned"]
+        },
+        "RM-301": {
+            name: "Seminar Pod C1",
+            floor: "Floor 3",
+            capacity: "15 Pax",
+            bookings: "2 Active Sessions",
+            status: "Reserved",
+            note: "Reserved for Information Literacy Briefing.",
+            facilities: ["Dual Monitors", "Wireless Mic", "Movable Chairs", "Wi-Fi"]
+        },
+        "RM-401": {
+            name: "Quiet Study Room D1",
+            floor: "Floor 4",
+            capacity: "4 Pax",
+            bookings: "6 Active Sessions",
+            status: "Available",
+            note: "Strict silent zone enforced.",
+            facilities: ["Acoustic Insulation", "Desk Lamps", "Individual Power Ports", "Wi-Fi"]
+        },
+        "RM-402": {
+            name: "Quiet Study Room D2",
+            floor: "Floor 4",
+            capacity: "4 Pax",
+            bookings: "6 Active Sessions",
+            status: "Available",
+            note: "Strict silent zone enforced.",
+            facilities: ["Acoustic Insulation", "Desk Lamps", "Individual Power Ports", "Wi-Fi"]
         }
     };
 
-    const params = new URLSearchParams(window.location.search);
-    const roomId = params.get("room_id") || "1";
-    const room = roomsCatalog[roomId] || roomsCatalog["1"];
+    const statusRadios = document.querySelectorAll('input[name="roomStatus"]');
+    const statusNotes = document.getElementById("statusNotes");
 
-    document.getElementById("roomIdText").textContent = "Room ID: #" + room.room_id;
-    roomNameEl.textContent = room.room_name;
-    document.getElementById("roomCapacityText").textContent = room.capacity + " Students";
-    document.getElementById("roomFacilitiesText").textContent = room.facilities;
-    document.getElementById("scheduleSubtitle").textContent = "Existing reservations for " + room.room_name;
-
-    const iconBox = document.getElementById("roomIconBox");
-    const iconEl = document.getElementById("roomIcon");
-    const badgeEl = document.getElementById("roomStatusBadge");
-    const statusTextEl = document.getElementById("roomStatusText");
-    const btnContainer = document.getElementById("bookButtonContainer");
-
-    iconEl.className = "bi " + room.icon;
-    badgeEl.textContent = room.room_status;
-    statusTextEl.textContent = room.room_status;
-
-    const encodedRoomName = encodeURIComponent(room.room_name);
-
-    if (room.room_status === "Available") {
-        iconBox.className = "stat-icon bg-primary bg-opacity-10 text-primary";
-        badgeEl.className = "badge badge-available px-3 py-2 rounded-pill";
-        statusTextEl.className = "fw-semibold text-success text-end py-2";
-        btnContainer.innerHTML = `<a href="booking_form.html?roomName=${encodedRoomName}&from=room_details&room_id=${room.room_id}" class="btn btn-primary-roomsync"><i class="bi bi-calendar-plus me-1"></i> Book This Room</a>`;
-    } else if (room.room_status === "Occupied") {
-        iconBox.className = "stat-icon bg-secondary bg-opacity-10 text-secondary";
-        badgeEl.className = "badge bg-warning-subtle text-warning px-3 py-2 rounded-pill";
-        statusTextEl.className = "fw-semibold text-warning text-end py-2";
-        btnContainer.innerHTML = `<a href="booking_form.html?roomName=${encodedRoomName}&from=room_details&room_id=${room.room_id}" class="btn btn-outline-primary"><i class="bi bi-calendar-plus me-1"></i> Book Later Slot</a>`;
-    } else {
-        iconBox.className = "stat-icon bg-danger bg-opacity-10 text-danger";
-        badgeEl.className = "badge bg-danger-subtle text-danger px-3 py-2 rounded-pill";
-        statusTextEl.className = "fw-semibold text-danger text-end py-2";
-        btnContainer.innerHTML = `<button type="button" class="btn btn-secondary" disabled>Room Under Maintenance</button>`;
-    }
-
-    // Populate booked time slots from localStorage for this room
-    const tbody = document.getElementById("scheduleTableBody");
-    const savedBookings = JSON.parse(localStorage.getItem("roomSyncBookings")) || [];
-    const roomBookings = savedBookings.filter(
-        (b) => b.roomName === room.room_name && b.bookingStatus !== "Cancelled"
-    );
-
-    if (tbody) {
-        if (roomBookings.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted py-3">No active reservations scheduled for this room.</td></tr>`;
+    // [Ref: update_room_status.html] Apply badge styling based on status
+    function applyStatusBadge(element, status) {
+        element.className = "badge rounded-pill px-3 py-2";
+        if (status === "Available") {
+            element.classList.add("badge-available");
+        } else if (status === "Maintenance") {
+            element.classList.add("badge-maintenance");
         } else {
-            tbody.innerHTML = roomBookings.map((b) => `
-                <tr>
-                    <td>${b.bookingDate || b.rawDate}</td>
-                    <td>${b.startTime}</td>
-                    <td>${b.endTime}</td>
-                    <td><span class="badge badge-confirmed px-2 py-1 rounded-pill">${b.bookingStatus || "Approved"}</span></td>
-                </tr>
-            `).join("");
+            element.classList.add("badge-confirmed");
         }
+        element.textContent = status;
     }
-}
 
-// [Ref: room_list.html] 9. Filter rooms by both Room Status and Minimum Capacity
-function setupRoomListFilter() {
-    const filterForm = document.getElementById("roomFilterForm");
-    if (!filterForm) return;
+    // [Ref: update_room_status.html] Load room details into preview panel
+    function loadRoomPreview(roomCode) {
+        const room = roomsData[roomCode];
+        if (!room) return;
 
-    const statusSelect = document.getElementById("filter_status");
-    const capacitySelect = document.getElementById("filter_capacity");
-    const roomCards = document.querySelectorAll(".room-card-item");
-    const noRoomsAlert = document.getElementById("noRoomsAlert");
+        document.getElementById("previewCode").textContent = roomCode;
+        document.getElementById("previewName").textContent = room.name;
+        document.getElementById("previewFloor").textContent = room.floor;
+        document.getElementById("previewCapacity").textContent = room.capacity;
+        document.getElementById("previewBookings").textContent = room.bookings;
+        document.getElementById("previewNote").textContent = room.note;
+        if (statusNotes) {
+            statusNotes.value = room.note;
+        }
 
-    function applyRoomFilters() {
-        const selectedStatus = statusSelect ? statusSelect.value.trim() : "";
-        const minCapacity = capacitySelect && capacitySelect.value ? parseInt(capacitySelect.value, 10) : 0;
-        let visibleCount = 0;
+        // Render facilities
+        const facilitiesContainer = document.getElementById("previewFacilities");
+        if (facilitiesContainer) {
+            facilitiesContainer.innerHTML = room.facilities
+                .map((item) => `<span class="facility-pill"><i class="bi bi-check2-circle text-primary"></i> ${item}</span>`)
+                .join("");
+        }
 
-        roomCards.forEach((card) => {
-            const cardStatus = card.getAttribute("data-status") || "";
-            const cardCapacity = parseInt(card.getAttribute("data-capacity") || "0", 10);
-
-            const matchesStatus = !selectedStatus || cardStatus === selectedStatus;
-            const matchesCapacity = !minCapacity || cardCapacity >= minCapacity;
-
-            if (matchesStatus && matchesCapacity) {
-                card.classList.remove("d-none");
-                visibleCount++;
-            } else {
-                card.classList.add("d-none");
-            }
+        // Set radio button & badge to match room's current status
+        statusRadios.forEach((radio) => {
+            radio.checked = radio.value === room.status;
         });
-
-        if (noRoomsAlert) {
-            if (visibleCount === 0) {
-                noRoomsAlert.classList.remove("d-none");
-            } else {
-                noRoomsAlert.classList.add("d-none");
-            }
-        }
+        applyStatusBadge(document.getElementById("previewBadge"), room.status);
     }
 
-    filterForm.addEventListener("submit", function (e) {
-        e.preventDefault();
-        applyRoomFilters();
+    // [Ref: update_room_status.html] Check URL query parameter (?room=RM-202 or ?roomId=RM-202)
+    const urlParams = new URLSearchParams(window.location.search);
+    const queryRoom = urlParams.get("room") || urlParams.get("roomId");
+    if (queryRoom && roomsData[queryRoom]) {
+        roomSelect.value = queryRoom;
+    }
+    loadRoomPreview(roomSelect.value);
+
+    // Update preview when room dropdown changes
+    roomSelect.addEventListener("change", function () {
+        loadRoomPreview(this.value);
     });
 
-    const params = new URLSearchParams(window.location.search);
-    if (params.has("room_status") || params.has("capacity")) {
-        if (statusSelect && params.get("room_status")) statusSelect.value = params.get("room_status");
-        if (capacitySelect && params.get("capacity")) capacitySelect.value = params.get("capacity");
-        applyRoomFilters();
+    // Live update badge preview when radio status changes
+    statusRadios.forEach((radio) => {
+        radio.addEventListener("change", function () {
+            if (this.checked) {
+                applyStatusBadge(document.getElementById("previewBadge"), this.value);
+            }
+        });
+    });
+
+    // Live update note preview while typing
+    if (statusNotes) {
+        statusNotes.addEventListener("input", function () {
+            const trimmedNote = this.value.trim();
+            if (trimmedNote) {
+                document.getElementById("previewNote").textContent = trimmedNote;
+            } else {
+                document.getElementById("previewNote").textContent = "No additional remarks provided.";
+            }
+        });
+    }
+
+    // [Ref: update_room_status.html] Handle Form Submission
+    updateStatusForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        const selectedCode = roomSelect.value;
+        const selectedStatus = document.querySelector('input[name="roomStatus"]:checked').value;
+        const selectedReason = document.getElementById("reasonSelect").value;
+        let noteText = selectedReason;
+        if (statusNotes && statusNotes.value.trim()) {
+            noteText = statusNotes.value.trim();
+        }
+
+        // Update stored room state
+        roomsData[selectedCode].status = selectedStatus;
+        roomsData[selectedCode].note = noteText;
+
+        // Show confirmation alert
+        const alertBox = document.getElementById("statusAlert");
+        const alertMsg = document.getElementById("statusAlertMsg");
+        if (alertMsg) {
+            alertMsg.textContent = `${selectedCode} (${roomsData[selectedCode].name}) is now marked as ${selectedStatus}.`;
+        }
+        if (alertBox) {
+            alertBox.classList.remove("d-none");
+        }
+
+        // Prepend to Recent Status Updates log
+        let badgeClass = "badge-confirmed";
+        if (selectedStatus === "Available") {
+            badgeClass = "badge-available";
+        } else if (selectedStatus === "Maintenance") {
+            badgeClass = "badge-maintenance";
+        }
+
+        const logItem = document.createElement("div");
+        logItem.className = "list-group-item px-0 py-2.5 border-bottom";
+        logItem.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="fw-bold">${selectedCode} — ${roomsData[selectedCode].name}</span>
+                <span class="badge ${badgeClass} rounded-pill">${selectedStatus}</span>
+            </div>
+            <p class="text-muted mb-1">${noteText}</p>
+            <small class="text-muted"><i class="bi bi-clock me-1"></i>Just now • By Librarian</small>
+        `;
+
+        const logsList = document.getElementById("recentLogsList");
+        if (logsList) {
+            logsList.insertBefore(logItem, logsList.firstChild);
+        }
+
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    // Reset button restores current room's saved preview
+    const resetFormBtn = document.getElementById("resetFormBtn");
+    if (resetFormBtn) {
+        resetFormBtn.addEventListener("click", function () {
+            setTimeout(() => loadRoomPreview(roomSelect.value), 10);
+        });
     }
 }
 
-// [Ref: register.html, login.html, booking_form.html, booking_confirmation.html, my_bookings.html, room_list.html, room_details.html, components.js] 7. Global initialization
+// [Ref: register.html, login.html, booking_form.html, booking_confirmation.html, my_bookings.html, booking_analytics.html, daily_schedule.html, librarian_dashboard.html, manage_rooms.html, update_room_status.html, components.js] 7. Global initialization
 document.addEventListener("DOMContentLoaded", () => {
     setupRegisterPage();
     setupLoginPage();
@@ -924,8 +1703,11 @@ document.addEventListener("DOMContentLoaded", () => {
     setupBookingForm();
     loadMyBookings();
     updateWeeklyQuotaDisplay();
-    loadRoomDetailsPage();
-    setupRoomListFilter();
+    setupBookingAnalyticsPage();
+    setupDailySchedulePage();
+    setupLibrarianDashboardPage();
+    setupManageRoomsPage();
+    setupUpdateRoomStatusPage();
 
     // [Ref: components.js & student pages] Toggle sidebar for desktop and mobile views
     const sidebar = document.getElementById("sidebar");

@@ -11,57 +11,6 @@
 
     <!-- RoomSync Global Stylesheet -->
     <link rel="stylesheet" href="../assets/css/style.css">
-
-    <style>
-        /* Heatmap Cell Styles (Inspired by Reference Analytics) */
-        .heatmap-table th {
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: var(--text-muted);
-            text-align: center;
-            border-bottom: 1px solid var(--border-color);
-            padding: 0.5rem 0.25rem;
-        }
-        .heatmap-table td.time-col {
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: var(--text-muted);
-            white-space: nowrap;
-            width: 85px;
-        }
-        .heatmap-cell {
-            height: 36px;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.72rem;
-            font-weight: 600;
-            transition: transform 0.15s ease;
-        }
-        .heatmap-cell:hover {
-            transform: scale(1.06);
-            cursor: default;
-        }
-        .heat-low {
-            background-color: #dbeafe;
-            color: #1e40af;
-        }
-        .heat-mid {
-            background-color: #fed7aa;
-            color: #9a3412;
-        }
-        .heat-high {
-            background-color: #f97316;
-            color: #ffffff;
-        }
-        .legend-box {
-            width: 12px;
-            height: 12px;
-            border-radius: 3px;
-            display: inline-block;
-        }
-    </style>
 </head>
 <body>
 
@@ -123,7 +72,7 @@
                 </div>
             </div>
 
-            <!-- Top KPI Summary Strip (Seperti dalam gambar rujukan) -->
+            <!-- Top KPI Summary Strip -->
             <div class="row g-3 mb-4">
                 <div class="col-6 col-lg-3">
                     <div class="card-roomsync p-3 h-100">
@@ -370,139 +319,11 @@
     </div>
 </div>
 
-<!-- Bootstrap JS, Chart.js & Custom Script -->
+<!-- Bootstrap JS & Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="../assets/js/sidebar_librarian.js"></script>
 <script src="../assets/js/script.js"></script>
-
-<script>
-    // 1. Total Bookings by Room (Horizontal Bar Chart)
-    const bookingsByRoomCtx = document.getElementById('bookingsByRoomChart').getContext('2d');
-    const bookingsByRoomChart = new Chart(bookingsByRoomCtx, {
-        type: 'bar',
-        data: {
-            labels: [
-                'RM-101 (Discussion A1)',
-                'RM-102 (Discussion A2)',
-                'RM-301 (Seminar Pod C1)',
-                'RM-202 (Media Room B2)',
-                'RM-302 (Seminar Pod C2)',
-                'RM-201 (Media Room B1)',
-                'RM-401 (Quiet Study D1)',
-                'RM-402 (Quiet Study D2)'
-            ],
-            datasets: [{
-                label: 'Total Bookings',
-                data: [198, 184, 172, 165, 154, 142, 138, 131],
-                backgroundColor: '#2563eb',
-                hoverBackgroundColor: '#1d4ed8',
-                borderRadius: 6,
-                barThickness: 18
-            }]
-        },
-        options: {
-            indexAxis: 'y',
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                x: {
-                    beginAtZero: true,
-                    grid: { color: '#f1f5f9' }
-                },
-                y: {
-                    grid: { display: false }
-                }
-            }
-        }
-    });
-
-    // 2. Room Utilization Percentage (Doughnut Chart)
-    const utilizationCtx = document.getElementById('utilizationDoughnutChart').getContext('2d');
-    const utilizationChart = new Chart(utilizationCtx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Utilized (76.4%)', 'Available / Idle (23.6%)'],
-            datasets: [{
-                data: [76.4, 23.6],
-                backgroundColor: ['#2563eb', '#e2e8f0'],
-                borderWidth: 0,
-                hoverOffset: 4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: '72%',
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: { boxWidth: 12, font: { size: 12 } }
-                }
-            }
-        }
-    });
-
-    // 3. Peak Booking Hours (Bar Chart highlighting peak hours in orange)
-    const peakHoursCtx = document.getElementById('peakHoursChart').getContext('2d');
-    const peakHoursChart = new Chart(peakHoursCtx, {
-        type: 'bar',
-        data: {
-            labels: ['8 AM', '9 AM', '10 AM', '11 AM', '12 PM', '1 PM', '2 PM', '3 PM', '4 PM', '5 PM', '6 PM', '7 PM', '8 PM'],
-            datasets: [{
-                label: 'Avg. Bookings / Hour',
-                data: [12, 22, 34, 41, 45, 48, 62, 68, 64, 52, 36, 28, 19],
-                backgroundColor: [
-                    '#93c5fd', '#93c5fd', '#60a5fa', '#60a5fa', '#3b82f6', '#3b82f6',
-                    '#f97316', '#f97316', '#f97316', '#3b82f6', '#60a5fa', '#93c5fd', '#93c5fd'
-                ],
-                borderRadius: 5
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    grid: { color: '#f1f5f9' }
-                },
-                x: {
-                    grid: { display: false }
-                }
-            }
-        }
-    });
-
-    // Interactive Filter Simulation
-    document.getElementById('applyFilterBtn').addEventListener('click', () => {
-        const roomType = document.getElementById('roomFilter').value;
-        const kpiReservations = document.getElementById('kpiReservations');
-        const kpiUtilization = document.getElementById('kpiUtilization');
-        const kpiTopRoom = document.getElementById('kpiTopRoom');
-
-        const presets = {
-            all: { res: '1,284', util: '76.4%', top: 'RM-101', hours: [12, 22, 34, 41, 45, 48, 62, 68, 64, 52, 36, 28, 19] },
-            discussion: { res: '482', util: '86.0%', top: 'RM-101', hours: [6, 10, 15, 18, 20, 21, 26, 28, 25, 20, 14, 11, 8] },
-            media: { res: '307', util: '72.0%', top: 'RM-202', hours: [2, 4, 7, 9, 10, 11, 15, 16, 15, 12, 8, 6, 4] },
-            seminar: { res: '326', util: '78.0%', top: 'RM-301', hours: [3, 5, 8, 9, 10, 11, 14, 16, 16, 13, 9, 7, 4] },
-            quiet: { res: '169', util: '65.0%', top: 'RM-401', hours: [1, 3, 4, 5, 5, 5, 7, 8, 8, 7, 5, 4, 3] }
-        };
-
-        const selected = presets[roomType];
-        kpiReservations.textContent = selected.res;
-        kpiUtilization.textContent = selected.util;
-        kpiTopRoom.textContent = selected.top;
-
-        peakHoursChart.data.datasets[0].data = selected.hours;
-        peakHoursChart.update();
-    });
-</script>
 
 </body>
 </html>
